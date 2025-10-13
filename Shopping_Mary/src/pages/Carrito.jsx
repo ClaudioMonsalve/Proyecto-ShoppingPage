@@ -1,4 +1,3 @@
-// src/pages/Carrito.jsx
 import React from "react";
 
 export default function Carrito({ carrito, setCarrito }) {
@@ -12,27 +11,35 @@ export default function Carrito({ carrito, setCarrito }) {
   );
 
   const pagar = async () => {
+    if (carrito.length === 0) return alert("El carrito está vacío");
+
+    // Formatea los items para el backend
+    const items = carrito.map((producto) => ({
+      nombre: producto.nombre,
+      precio: producto.precio,
+      cantidad: producto.cantidad,
+    }));
+
     try {
-      const res = await fetch("http://localhost:5000/create_preference", {
+      const res = await fetch("http://localhost:3000/create_preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ carrito }),
+        body: JSON.stringify({ items }),
       });
 
       const data = await res.json();
 
       if (data.init_point) {
-        window.location.href = data.init_point; // Redirige al checkout
+        window.location.href = data.init_point;
       } else {
-        console.log(data); // Mira qué te está devolviendo el backend
+        console.log("❌ Respuesta backend:", data);
         alert("Error al generar la preferencia de pago");
       }
     } catch (err) {
-      console.error("Error al procesar el pago:", err);
+      console.error("❌ Error al procesar el pago:", err);
       alert("Error al procesar el pago");
     }
   };
-
 
   return (
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
@@ -62,7 +69,9 @@ export default function Carrito({ carrito, setCarrito }) {
                 style={{ width: "60px", borderRadius: "6px" }}
               />
               <span style={{ flex: 1, marginLeft: "15px" }}>{producto.nombre}</span>
-              <span style={{ margin: "0 25px 0 15px" }}>Cantidad: {producto.cantidad}</span>
+              <span style={{ margin: "0 25px 0 15px" }}>
+                Cantidad: {producto.cantidad}
+              </span>
               <span style={{ marginRight: "25px" }}>
                 Subtotal: ${producto.precio * producto.cantidad}
               </span>
@@ -81,7 +90,6 @@ export default function Carrito({ carrito, setCarrito }) {
             </div>
           ))}
 
-          {/* Total y botón de pago */}
           <div style={{ textAlign: "right", marginTop: "10px", color: "white" }}>
             <h3>Total: ${total}</h3>
             <button
@@ -103,7 +111,3 @@ export default function Carrito({ carrito, setCarrito }) {
     </div>
   );
 }
-
-
-
-

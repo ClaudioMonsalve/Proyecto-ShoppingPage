@@ -1,45 +1,44 @@
-// server.js
 import express from "express";
 import cors from "cors";
-import mercadopago from "mercadopago";
-
-mercadopago.configurations.setAccessToken("TEST-3678382236791652-100810-93ef24b12ebbbd5136f2921e0a83e889-291368995");
+import { MercadoPagoConfig, Preference } from "mercadopago";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Configura MercadoPago
+const client = new MercadoPagoConfig({
+  accessToken: "TEST-3082403962218338-101222-e9fe5842d14600316ae5e5dafb29cc9e-291368995"
+});
+const preference = new Preference(client);
+
+// Endpoint para crear la preferencia
 app.post("/create_preference", async (req, res) => {
   try {
-    const { carrito } = req.body;
+    const { items } = req.body;
 
-    if (!carrito || !carrito.length) {
-      return res.status(400).json({ error: "Carrito vacío o inválido" });
-    }
-
-    const items = carrito.map(prod => ({
-      title: prod.nombre,
-      unit_price: Number(prod.precio),
-      quantity: Number(prod.cantidad),
-    }));
-
-    const preference = {
-      items,
+    const preferenceData = {
+      items: items.map(item => ({
+        title: item.nombre,
+        unit_price: Number(item.precio),
+        quantity: Number(item.cantidad),
+      })),
       back_urls: {
-        success: "http://localhost:5173/",
-        failure: "http://localhost:5173/",
-        pending: "http://localhost:5173/"
+        success: "http://localhost:5173/success",
+        failure: "http://localhost:5173/failure",
+        pending: "http://localhost:5173/pending",
       },
-      auto_return: "approved",
     };
 
-    const response = await mercadopago.preferences.create(preference);
+    const response = await preference.create({ body: preferenceData });
 
-    res.json({ init_point: response.body.init_point });
-  } catch (err) {
-    console.error("Error al crear sesión:", err);
-    res.status(500).json({ error: "Error al crear preferencia" });
+    res.json({ init_point: response.init_point });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error creando la preferencia" });
   }
 });
 
-app.listen(5000, () => console.log("Servidor corriendo en puerto 5000"));
+app.listen(3000, () => {
+  console.log("Servidor escuchando en http://localhost:3000");
+});
