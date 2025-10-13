@@ -1,7 +1,7 @@
 import { json } from "micro";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 
-// Configura MercadoPago usando variable de entorno
+// Configura MercadoPago con variable de entorno
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
 });
@@ -19,27 +19,25 @@ export default async function handler(req, res) {
     const body = await json(req);
     const { items } = body;
 
-    console.log("Items recibidos:", items);
-    console.log(
-      "Token disponible:",
-      process.env.MERCADOPAGO_ACCESS_TOKEN ? "Sí" : "No"
-    );
+    console.log("🛍 Items recibidos:", items);
 
+    // Validar items mínimos
     const preferenceData = {
-      items: items.map((item) => ({
-        title: item.nombre,
-        unit_price: Number(item.precio),
-        quantity: Number(item.cantidad),
+      items: items.map(item => ({
+        title: item.nombre || "Producto",
+        unit_price: Number(item.precio) > 0 ? Number(item.precio) : 1,
+        quantity: Number(item.cantidad) >= 1 ? Number(item.cantidad) : 1,
       })),
       back_urls: {
         success: "https://proyecto-shopping-page.vercel.app/",
         failure: "https://proyecto-shopping-page.vercel.app/",
         pending: "https://proyecto-shopping-page.vercel.app/",
       },
+      auto_return: "approved", // Redirige automáticamente al aprobar
     };
 
     const response = await preference.create({ body: preferenceData });
-    console.log("✅ Preferencia creada:", response);
+    console.log("✅ Preferencia creada:", response.init_point);
 
     res.status(200).json({ init_point: response.init_point });
   } catch (error) {
@@ -47,3 +45,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Error creando la preferencia" });
   }
 }
+

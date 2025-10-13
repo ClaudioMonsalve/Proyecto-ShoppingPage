@@ -1,8 +1,8 @@
 import React from "react";
 
 export default function Carrito({ carrito, setCarrito }) {
-  const eliminarProducto = (id) => {
-    setCarrito(carrito.filter((producto) => producto.id !== id));
+  const eliminarProducto = id => {
+    setCarrito(carrito.filter(producto => producto.id !== id));
   };
 
   const total = carrito.reduce(
@@ -13,7 +13,7 @@ export default function Carrito({ carrito, setCarrito }) {
   const pagar = async () => {
     if (carrito.length === 0) return alert("El carrito está vacío");
 
-    const items = carrito.map((producto) => ({
+    const items = carrito.map(producto => ({
       nombre: producto.nombre,
       precio: producto.precio,
       cantidad: producto.cantidad,
@@ -27,16 +27,16 @@ export default function Carrito({ carrito, setCarrito }) {
       });
 
       const data = await res.json();
-      console.log("Respuesta backend:", data);
+      console.log("👉 init_point recibido:", data.init_point);
 
       if (data.init_point) {
-        window.location.href = data.init_point;
+        window.location.href = data.init_point; // Redirige al checkout
       } else {
-        alert("Error al generar la preferencia de pago");
+        alert("❌ Error al generar la preferencia de pago");
       }
     } catch (err) {
       console.error("❌ Error al procesar el pago:", err);
-      alert("Error al procesar el pago");
+      alert("❌ Error al procesar el pago");
     }
   };
 
@@ -48,7 +48,7 @@ export default function Carrito({ carrito, setCarrito }) {
         <p style={{ color: "white" }}>Tu carrito está vacío</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-          {carrito.map((producto) => (
+          {carrito.map(producto => (
             <div
               key={producto.id}
               style={{
@@ -110,3 +110,4 @@ export default function Carrito({ carrito, setCarrito }) {
     </div>
   );
 }
+
