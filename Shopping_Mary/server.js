@@ -24,9 +24,9 @@ app.post("/create_preference", async (req, res) => {
         quantity: Number(item.cantidad),
       })),
       back_urls: {
-        success: "http://localhost:5173/success",
-        failure: "http://localhost:5173/failure",
-        pending: "http://localhost:5173/pending",
+        success: "https://proyecto-shopping-page.vercel.app/",
+        failure: "https://proyecto-shopping-page.vercel.app/",
+        pending: "https://proyecto-shopping-page.vercel.app/",
       },
     };
 
