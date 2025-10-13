@@ -51,7 +51,6 @@ app.post("/create_preference", async (req, res) => {
         failure: process.env.BACK_URL_FAILURE,
         pending: process.env.BACK_URL_PENDING,
       },
-      auto_return: "approved"
     };
 
     const response = await preference.create({ body: preferenceData });
