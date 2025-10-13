@@ -13,7 +13,6 @@ export default function Carrito({ carrito, setCarrito }) {
   const pagar = async () => {
     if (carrito.length === 0) return alert("El carrito está vacío");
 
-    // Formatea los items para el backend
     const items = carrito.map((producto) => ({
       nombre: producto.nombre,
       precio: producto.precio,
@@ -28,11 +27,11 @@ export default function Carrito({ carrito, setCarrito }) {
       });
 
       const data = await res.json();
+      console.log("Respuesta backend:", data);
 
       if (data.init_point) {
         window.location.href = data.init_point;
       } else {
-        console.log("❌ Respuesta backend:", data);
         alert("Error al generar la preferencia de pago");
       }
     } catch (err) {
