@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 export default function Carrito({ carrito, setCarrito }) {
   const [loading, setLoading] = useState(false);
-  const [preferenceId, setPreferenceId] = useState(null);
 
   const eliminarProducto = (id) => {
     setCarrito(carrito.filter((producto) => producto.id !== id));
   };
 
-  const total = carrito.reduce((acc, producto) => acc + producto.precio * producto.cantidad, 0);
+  const total = carrito.reduce(
+    (acc, producto) => acc + producto.precio * producto.cantidad,
+    0
+  );
 
-  const crearPreferencia = async () => {
+  const pagar = async () => {
     if (carrito.length === 0) return alert("El carrito está vacío");
 
     setLoading(true);
@@ -30,38 +32,19 @@ export default function Carrito({ carrito, setCarrito }) {
 
       const data = await res.json();
 
-      if (data.preferenceId) {
-        setPreferenceId(data.preferenceId);
+      if (data.init_point) {
+        // 🔥 Redirige directamente a Mercado Pago
+        window.location.href = data.init_point;
       } else {
-        alert("Error al generar la preferencia de pago");
+        alert("❌ Error al generar la preferencia de pago");
       }
     } catch (err) {
-      console.error("Error al procesar el pago:", err);
-      alert("Error al procesar el pago");
+      console.error("❌ Error al procesar el pago:", err);
+      alert("❌ Error al procesar el pago");
     } finally {
       setLoading(false);
     }
   };
-
-  // Renderiza botón oficial de Mercado Pago cuando tengamos preferenceId
-  useEffect(() => {
-    if (!preferenceId) return;
-
-    const script = document.createElement("script");
-    script.src = "https://sdk.mercadopago.com/js/v2";
-    script.async = true;
-
-    script.onload = () => {
-      const mp = new window.MercadoPago("665879217034266", { locale: "es-CL" });
-      mp.checkout({
-        preference: { id: preferenceId },
-        render: { container: "#mp-button", label: "Pagar con Mercado Pago" },
-      });
-    };
-
-    document.body.appendChild(script);
-    return () => document.body.removeChild(script);
-  }, [preferenceId]);
 
   return (
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
@@ -110,24 +93,20 @@ export default function Carrito({ carrito, setCarrito }) {
 
           <div style={{ textAlign: "right", marginTop: "10px", color: "white" }}>
             <h3>Total: ${total}</h3>
-            {!preferenceId ? (
-              <button
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "6px",
-                  backgroundColor: "#646cff",
-                  color: "white",
-                  border: "none",
-                  cursor: loading ? "not-allowed" : "pointer",
-                }}
-                onClick={crearPreferencia}
-                disabled={loading}
-              >
-                {loading ? "Cargando..." : "Pagar"}
-              </button>
-            ) : (
-              <div id="mp-button"></div> // Aquí se renderiza el botón oficial
-            )}
+            <button
+              style={{
+                padding: "10px 20px",
+                borderRadius: "6px",
+                backgroundColor: "#646cff",
+                color: "white",
+                border: "none",
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+              onClick={pagar}
+              disabled={loading}
+            >
+              {loading ? "Cargando..." : "Pagar"}
+            </button>
           </div>
         </div>
       )}
