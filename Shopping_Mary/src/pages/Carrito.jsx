@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 
 export default function Carrito({ carrito, setCarrito }) {
+  const [loading, setLoading] = useState(false);
+
   const eliminarProducto = id => {
     setCarrito(carrito.filter(producto => producto.id !== id));
   };
@@ -12,6 +14,8 @@ export default function Carrito({ carrito, setCarrito }) {
 
   const pagar = async () => {
     if (carrito.length === 0) return alert("El carrito está vacío");
+
+    setLoading(true);
 
     const items = carrito.map(producto => ({
       nombre: producto.nombre,
@@ -37,6 +41,8 @@ export default function Carrito({ carrito, setCarrito }) {
     } catch (err) {
       console.error("❌ Error al procesar el pago:", err);
       alert("❌ Error al procesar el pago");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,11 +104,12 @@ export default function Carrito({ carrito, setCarrito }) {
                 backgroundColor: "#646cff",
                 color: "white",
                 border: "none",
-                cursor: "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
               }}
               onClick={pagar}
+              disabled={loading}
             >
-              Pagar
+              {loading ? "Cargando..." : "Pagar"}
             </button>
           </div>
         </div>
@@ -110,4 +117,5 @@ export default function Carrito({ carrito, setCarrito }) {
     </div>
   );
 }
+
 
