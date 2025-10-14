@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaHome, FaUserCircle } from "react-icons/fa";
+import { createClient } from "@supabase/supabase-js";
+
+// Inicializa Supabase (usa tu anon key)
+const supabaseUrl = "https://mromohsaigquffgkzgny.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yb21vaHNhaWdxdWZmZ2t6Z255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTI5MTksImV4cCI6MjA3NTQyODkxOX0.Kc1dlQqya4-6e8KJ2uhNw-fWh5pi5Fc_pTUc0EIKvpw";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function Header({ carrito }) {
   const navigate = useNavigate();
@@ -8,6 +14,16 @@ export default function Header({ carrito }) {
 
   // Contador total de productos en el carrito
   const totalProductos = carrito.reduce((acc, p) => acc + (p.cantidad || 0), 0);
+
+  const loginWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin, // regresa a la misma página después del login
+      },
+    });
+    if (error) console.error("❌ Error al iniciar sesión:", error.message);
+  };
 
   return (
     <header
@@ -92,23 +108,9 @@ export default function Header({ carrito }) {
                   textAlign: "left",
                   cursor: "pointer",
                 }}
-                onClick={() => navigate("/register")}
+                onClick={loginWithGoogle}
               >
-                Registrarse
-              </button>
-              <button
-                style={{
-                  display: "block",
-                  padding: "10px 20px",
-                  width: "100%",
-                  border: "none",
-                  background: "none",
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
-                onClick={() => navigate("/login")}
-              >
-                Iniciar sesión
+                Entrar con Google
               </button>
             </div>
           )}
