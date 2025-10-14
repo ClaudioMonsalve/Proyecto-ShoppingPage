@@ -3,8 +3,8 @@ import React, { useState } from "react";
 export default function Carrito({ carrito, setCarrito }) {
   const [loading, setLoading] = useState(false);
 
-  const eliminarProducto = id => {
-    setCarrito(carrito.filter(producto => producto.id !== id));
+  const eliminarProducto = (id) => {
+    setCarrito(carrito.filter((producto) => producto.id !== id));
   };
 
   const total = carrito.reduce(
@@ -17,7 +17,7 @@ export default function Carrito({ carrito, setCarrito }) {
 
     setLoading(true);
 
-    const items = carrito.map(producto => ({
+    const items = carrito.map((producto) => ({
       nombre: producto.nombre,
       precio: producto.precio,
       cantidad: producto.cantidad,
@@ -34,7 +34,8 @@ export default function Carrito({ carrito, setCarrito }) {
       console.log("👉 init_point recibido:", data.init_point);
 
       if (data.init_point) {
-        window.location.href = data.init_point; // Redirige al checkout
+        // Redirige al checkout de Mercado Pago
+        window.location.href = data.init_point;
       } else {
         alert("❌ Error al generar la preferencia de pago");
       }
@@ -54,7 +55,7 @@ export default function Carrito({ carrito, setCarrito }) {
         <p style={{ color: "white" }}>Tu carrito está vacío</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-          {carrito.map(producto => (
+          {carrito.map((producto) => (
             <div
               key={producto.id}
               style={{
@@ -73,7 +74,9 @@ export default function Carrito({ carrito, setCarrito }) {
                 alt={producto.nombre}
                 style={{ width: "60px", borderRadius: "6px" }}
               />
-              <span style={{ flex: 1, marginLeft: "15px" }}>{producto.nombre}</span>
+              <span style={{ flex: 1, marginLeft: "15px" }}>
+                {producto.nombre}
+              </span>
               <span style={{ margin: "0 25px 0 15px" }}>
                 Cantidad: {producto.cantidad}
               </span>
