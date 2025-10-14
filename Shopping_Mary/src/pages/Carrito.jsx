@@ -24,7 +24,7 @@ export default function Carrito({ carrito, setCarrito }) {
     }));
 
     try {
-      const res = await fetch("https://shopping-page.vercel.app/api/create_preference", {
+      const res = await fetch("/api/create_preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items }),
