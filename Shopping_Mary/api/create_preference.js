@@ -1,9 +1,11 @@
+import { json } from "micro";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 
-// ✅ Usa exactamente esta variable de entorno
+// Configura el cliente con tu Access Token de producción
 const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN, // ✅ tu variable de entorno
 });
+
 const preference = new Preference(client);
 
 export default async function handler(req, res) {
@@ -15,11 +17,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { items } = req.body;
+    const body = await json(req);
+    const { items } = body;
+
     console.log("🛍 Items recibidos:", items);
 
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: "No se recibieron items" });
+    }
+
     const preferenceData = {
-      items: items.map(item => ({
+      items: items.map((item) => ({
         title: item.nombre || "Producto",
         unit_price: Number(item.precio) > 0 ? Number(item.precio) : 1,
         quantity: Number(item.cantidad) >= 1 ? Number(item.cantidad) : 1,
@@ -33,9 +41,10 @@ export default async function handler(req, res) {
     };
 
     const response = await preference.create({ body: preferenceData });
-    console.log("✅ Preferencia creada:", response.init_point);
+    console.log("✅ Preferencia creada:", response);
 
-    return res.status(200).json({ init_point: response.init_point });
+    // Devuelve preferenceId para usar con el SDK JS oficial
+    return res.status(200).json({ preferenceId: response.id });
   } catch (error) {
     console.error("❌ Error creando preferencia:", error);
     if (error.cause) console.error("🪲 Causa:", error.cause);
