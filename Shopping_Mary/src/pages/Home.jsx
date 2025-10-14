@@ -1,10 +1,29 @@
+import { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient"; // Asegúrate de tener este archivo
+
 export default function Home({ carrito, setCarrito }) {
-  // Lista de productos de ejemplo
-  const productos = [
-    { id: 1, nombre: "Producto 1", precio: 100, imagen: "/producto1.png" },
-    { id: 2, nombre: "Producto 2", precio: 200, imagen: "/producto2.png" },
-    { id: 3, nombre: "Producto 3", precio: 150, imagen: "/producto3.png" }
-  ];
+  const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Traer productos de Supabase al cargar la página
+  useEffect(() => {
+    const fetchProductos = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("productos")
+        .select("*")
+        .order("id", { ascending: true });
+
+      if (error) {
+        console.error("❌ Error al traer productos:", error);
+      } else {
+        setProductos(data);
+      }
+      setLoading(false);
+    };
+
+    fetchProductos();
+  }, []);
 
   const agregarAlCarrito = (producto) => {
     const productoExistente = carrito.find((p) => p.id === producto.id);
@@ -19,12 +38,13 @@ export default function Home({ carrito, setCarrito }) {
     }
   };
 
+  if (loading) return <p style={{ color: "white" }}>Cargando productos...</p>;
+
   return (
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
       <h2 style={{ color: "white", marginBottom: "20px" }}>Productos</h2>
       <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
         {productos.map((producto) => {
-          // Buscar cantidad actual en el carrito
           const productoEnCarrito = carrito.find((p) => p.id === producto.id);
           const cantidad = productoEnCarrito ? productoEnCarrito.cantidad : 0;
 
@@ -58,4 +78,3 @@ export default function Home({ carrito, setCarrito }) {
     </div>
   );
 }
-
