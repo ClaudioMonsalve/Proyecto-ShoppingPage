@@ -1,44 +1,44 @@
-import express from "express";
-import cors from "cors";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Configura MercadoPago
+// ✅ Usa exactamente esta variable de entorno
 const client = new MercadoPagoConfig({
-  accessToken: "APP_USR-665879217034266-101222-a00dcae55c33838233ae933e54231c4f-291368995"
+  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
 });
 const preference = new Preference(client);
 
-// Endpoint para crear la preferencia
-app.post("/create_preference", async (req, res) => {
+export default async function handler(req, res) {
+  console.log("✅ Endpoint /api/create_preference llamado");
+
+  if (req.method !== "POST") {
+    console.log("❌ Método no permitido:", req.method);
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
   try {
     const { items } = req.body;
+    console.log("🛍 Items recibidos:", items);
 
     const preferenceData = {
       items: items.map(item => ({
-        title: item.nombre,
-        unit_price: Number(item.precio),
-        quantity: Number(item.cantidad),
+        title: item.nombre || "Producto",
+        unit_price: Number(item.precio) > 0 ? Number(item.precio) : 1,
+        quantity: Number(item.cantidad) >= 1 ? Number(item.cantidad) : 1,
       })),
       back_urls: {
-        success: "http://localhost:5173/",
-        failure: "http://localhost:5173/",
-        pending: "http://localhost:5173/",
+        success: "https://proyecto-shopping-page.vercel.app/",
+        failure: "https://proyecto-shopping-page.vercel.app/",
+        pending: "https://proyecto-shopping-page.vercel.app/",
       },
+      auto_return: "approved",
     };
 
     const response = await preference.create({ body: preferenceData });
+    console.log("✅ Preferencia creada:", response.init_point);
 
-    res.json({ init_point: response.init_point });
+    return res.status(200).json({ init_point: response.init_point });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error creando la preferencia" });
+    console.error("❌ Error creando preferencia:", error);
+    if (error.cause) console.error("🪲 Causa:", error.cause);
+    return res.status(500).json({ error: "Error creando la preferencia" });
   }
-});
-
-app.listen(3000, () => {
-  console.log("Servidor escuchando en http://localhost:3000");
-});
+}

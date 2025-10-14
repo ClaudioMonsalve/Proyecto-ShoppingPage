@@ -1,6 +1,6 @@
-import { json } from "micro";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 
+// ✅ Usa exactamente esta variable de entorno
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
 });
@@ -15,9 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = await json(req);
-    const { items } = body;
-
+    const { items } = req.body;
     console.log("🛍 Items recibidos:", items);
 
     const preferenceData = {
@@ -37,9 +35,10 @@ export default async function handler(req, res) {
     const response = await preference.create({ body: preferenceData });
     console.log("✅ Preferencia creada:", response.init_point);
 
-    res.status(200).json({ init_point: response.init_point });
+    return res.status(200).json({ init_point: response.init_point });
   } catch (error) {
     console.error("❌ Error creando preferencia:", error);
-    res.status(500).json({ error: "Error creando la preferencia" });
+    if (error.cause) console.error("🪲 Causa:", error.cause);
+    return res.status(500).json({ error: "Error creando la preferencia" });
   }
 }
