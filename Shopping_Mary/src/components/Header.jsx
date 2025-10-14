@@ -4,7 +4,7 @@ import { FaHome, FaUserCircle } from "react-icons/fa";
 
 export default function Header({ carrito }) {
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [openPerfil, setOpenPerfil] = useState(false);
 
   // Contador total de productos en el carrito
   const totalProductos = carrito.reduce((acc, p) => acc + (p.cantidad || 0), 0);
@@ -18,6 +18,7 @@ export default function Header({ carrito }) {
         padding: "10px 20px",
         backgroundColor: "#242424",
         color: "white",
+        position: "relative",
       }}
     >
       {/* Logo */}
@@ -29,8 +30,7 @@ export default function Header({ carrito }) {
         <h1 style={{ margin: 0 }}>E-Commerce</h1>
       </div>
 
-      {/* Iconos del header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "20px", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
         {/* Carrito */}
         <Link
           to="/carrito"
@@ -66,47 +66,47 @@ export default function Header({ carrito }) {
           <FaUserCircle
             size={28}
             style={{ cursor: "pointer" }}
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => setOpenPerfil(!openPerfil)}
           />
-
-          {menuOpen && (
+          {openPerfil && (
             <div
               style={{
                 position: "absolute",
+                right: 0,
                 top: "35px",
-                right: "0",
                 backgroundColor: "#fff",
                 color: "#000",
                 borderRadius: "6px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                 overflow: "hidden",
+                zIndex: 100,
               }}
             >
               <button
-                onClick={() => navigate("/registrarse")}
                 style={{
                   display: "block",
                   padding: "10px 20px",
                   width: "100%",
-                  background: "none",
                   border: "none",
+                  background: "none",
                   textAlign: "left",
                   cursor: "pointer",
                 }}
+                onClick={() => navigate("/register")}
               >
                 Registrarse
               </button>
               <button
-                onClick={() => navigate("/login")}
                 style={{
                   display: "block",
                   padding: "10px 20px",
                   width: "100%",
-                  background: "none",
                   border: "none",
+                  background: "none",
                   textAlign: "left",
                   cursor: "pointer",
                 }}
+                onClick={() => navigate("/login")}
               >
                 Iniciar sesión
               </button>
