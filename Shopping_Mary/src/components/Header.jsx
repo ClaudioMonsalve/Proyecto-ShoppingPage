@@ -19,7 +19,7 @@ export default function Header({ carrito }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin, // regresa a la misma página después del login
+        redirectTo: "https://proyecto-shopping-page.vercel.app/",
       },
     });
     if (error) console.error("❌ Error al iniciar sesión:", error.message);
