@@ -1,29 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaHome, FaUserCircle } from "react-icons/fa";
-import { createClient } from "@supabase/supabase-js";
-
-// Inicializa Supabase (usa tu anon key)
-const supabaseUrl = "https://mromohsaigquffgkzgny.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yb21vaHNhaWdxdWZmZ2t6Z255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTI5MTksImV4cCI6MjA3NTQyODkxOX0.Kc1dlQqya4-6e8KJ2uhNw-fWh5pi5Fc_pTUc0EIKvpw";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from "../supabaseClient"; // tu configuración de Supabase
 
 export default function Header({ carrito }) {
   const navigate = useNavigate();
-  const [openPerfil, setOpenPerfil] = useState(false);
+  const [user, setUser] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
 
   // Contador total de productos en el carrito
   const totalProductos = carrito.reduce((acc, p) => acc + (p.cantidad || 0), 0);
 
+  // Manejar login con Google
   const loginWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: "https://proyecto-shopping-page.vercel.app/",
-      },
+      options: { redirectTo: window.location.origin }
     });
-    if (error) console.error("❌ Error al iniciar sesión:", error.message);
+    if (error) console.error("Error login:", error.message);
   };
+
+  // Manejar logout
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Error logout:", error.message);
+    else setUser(null);
+  };
+
+  // Detectar usuario al cargar la página
+  useEffect(() => {
+    // Captura el token cuando Supabase redirige después del login
+    const handleAuthRedirect = async () => {
+      const { data, error } = await supabase.auth.getSessionFromUrl();
+      if (error) console.error("Error leyendo sesión:", error.message);
+      if (data?.session?.user) setUser(data.session.user);
+      // Limpia la URL
+      window.history.replaceState({}, document.title, "/");
+    };
+
+    handleAuthRedirect();
+
+    // También verificar si ya hay sesión activa
+    const session = supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user) setUser(data.session.user);
+    });
+
+    // Escuchar cambios de auth
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <header
@@ -34,7 +64,6 @@ export default function Header({ carrito }) {
         padding: "10px 20px",
         backgroundColor: "#242424",
         color: "white",
-        position: "relative",
       }}
     >
       {/* Logo */}
@@ -46,6 +75,7 @@ export default function Header({ carrito }) {
         <h1 style={{ margin: 0 }}>E-Commerce</h1>
       </div>
 
+      {/* Carrito + Perfil */}
       <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
         {/* Carrito */}
         <Link
@@ -82,36 +112,57 @@ export default function Header({ carrito }) {
           <FaUserCircle
             size={28}
             style={{ cursor: "pointer" }}
-            onClick={() => setOpenPerfil(!openPerfil)}
+            onClick={() => setShowMenu(!showMenu)}
           />
-          {openPerfil && (
+          {showMenu && (
             <div
               style={{
                 position: "absolute",
                 right: 0,
                 top: "35px",
-                backgroundColor: "#fff",
-                color: "#000",
+                backgroundColor: "white",
+                color: "black",
                 borderRadius: "6px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                overflow: "hidden",
-                zIndex: 100,
+                minWidth: "150px",
+                zIndex: 10,
+                overflow: "hidden"
               }}
             >
-              <button
-                style={{
-                  display: "block",
-                  padding: "10px 20px",
-                  width: "100%",
-                  border: "none",
-                  background: "none",
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
-                onClick={loginWithGoogle}
-              >
-                Entrar con Google
-              </button>
+              {user ? (
+                <>
+                  <p style={{ padding: "10px", margin: 0 }}>
+                    Hola, {user.email || user.user_metadata.full_name}
+                  </p>
+                  <button
+                    style={{
+                      padding: "10px",
+                      width: "100%",
+                      border: "none",
+                      backgroundColor: "#646cff",
+                      color: "white",
+                      cursor: "pointer"
+                    }}
+                    onClick={logout}
+                  >
+                    Cerrar sesión
+                  </button>
+                </>
+              ) : (
+                <button
+                  style={{
+                    padding: "10px",
+                    width: "100%",
+                    border: "none",
+                    backgroundColor: "#646cff",
+                    color: "white",
+                    cursor: "pointer"
+                  }}
+                  onClick={loginWithGoogle}
+                >
+                  Iniciar sesión con Google
+                </button>
+              )}
             </div>
           )}
         </div>
