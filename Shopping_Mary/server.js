@@ -8,7 +8,7 @@ app.use(express.json());
 
 // Configura MercadoPago
 const client = new MercadoPagoConfig({
-  accessToken: "APP_USR-3082403962218338-101222-2f815e8fb4f1f23ade9c93c64c773498-291368995"
+  accessToken: "APP_USR-665879217034266-101222-a00dcae55c33838233ae933e54231c4f-291368995"
 });
 const preference = new Preference(client);
 
@@ -24,9 +24,9 @@ app.post("/create_preference", async (req, res) => {
         quantity: Number(item.cantidad),
       })),
       back_urls: {
-        success: "https://proyecto-shopping-page.vercel.app/",
-        failure: "https://proyecto-shopping-page.vercel.app/",
-        pending: "https://proyecto-shopping-page.vercel.app/",
+        success: "http://localhost:5173/",
+        failure: "http://localhost:5173/",
+        pending: "http://localhost:5173/",
       },
     };
 
