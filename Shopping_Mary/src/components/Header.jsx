@@ -35,7 +35,7 @@ export default function Header({ carrito }) {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: "https://tu-proyecto.vercel.app",
       },
     });
   };
