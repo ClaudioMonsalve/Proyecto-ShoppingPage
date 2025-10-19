@@ -5,6 +5,8 @@ export default function Admin() {
   const [productos, setProductos] = useState([]);
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("");
+  const [stock, setStock] = useState("");
+  const [imagen, setImagen] = useState("");
   const [descripcion, setDescripcion] = useState("");
 
   // ✅ Cargar productos desde Supabase
@@ -27,12 +29,14 @@ export default function Admin() {
 
   // ✅ Subir nuevo producto
   const agregarProducto = async () => {
-    if (!nombre || !precio) return alert("Nombre y precio son obligatorios");
+    if (!nombre || !precio || !stock) return alert("Nombre, precio y stock son obligatorios");
 
     const { data, error } = await supabase.from("productos").insert([
       {
         nombre,
         precio: parseFloat(precio),
+        stock: parseInt(stock),
+        imagen: imagen || null,
         descripcion,
       },
     ]);
@@ -42,6 +46,8 @@ export default function Admin() {
     } else {
       setNombre("");
       setPrecio("");
+      setStock("");
+      setImagen("");
       setDescripcion("");
       fetchProductos(); // actualizar lista
     }
@@ -57,7 +63,7 @@ export default function Admin() {
     if (error) {
       console.error("Error al eliminar producto:", error);
     } else {
-      fetchProductos(); // actualizar lista
+      fetchProductos();
     }
   };
 
@@ -80,6 +86,20 @@ export default function Admin() {
           placeholder="Precio"
           value={precio}
           onChange={(e) => setPrecio(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
+        />
+        <input
+          type="number"
+          placeholder="Stock"
+          value={stock}
+          onChange={(e) => setStock(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
+        />
+        <input
+          type="text"
+          placeholder="Imagen (URL)"
+          value={imagen}
+          onChange={(e) => setImagen(e.target.value)}
           style={{ marginRight: "10px", padding: "5px" }}
         />
         <input
@@ -121,9 +141,16 @@ export default function Admin() {
               }}
             >
               <div>
-                <strong>{p.nombre}</strong> - ${p.precio.toFixed(2)}
+                <strong>{p.nombre}</strong> - ${p.precio.toFixed(2)} | Stock: {p.stock}
                 <br />
-                {p.descripcion}
+                {p.imagen && (
+                  <img
+                    src={p.imagen}
+                    alt={p.nombre}
+                    style={{ width: "80px", height: "80px", objectFit: "cover", marginTop: "5px" }}
+                  />
+                )}
+                <p>{p.descripcion}</p>
               </div>
               <button
                 onClick={() => eliminarProducto(p.id)}
@@ -133,6 +160,8 @@ export default function Admin() {
                   border: "none",
                   padding: "6px 12px",
                   cursor: "pointer",
+                  height: "40px",
+                  alignSelf: "center",
                 }}
               >
                 Eliminar
