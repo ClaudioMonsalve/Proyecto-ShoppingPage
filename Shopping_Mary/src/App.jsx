@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Home from "./pages/Home";
 import Carrito from "./pages/Carrito";
 import Perfil from "./pages/Perfil";
+import Admin from "./pages/Admin"; // ✅ Importa la página de admin
 
 function App() {
   const [carrito, setCarrito] = useState([]);
@@ -20,6 +21,9 @@ function App() {
         <Route path="/" element={<Home carrito={carrito} setCarrito={setCarrito} />} />
         <Route path="/carrito" element={<Carrito carrito={carrito} setCarrito={setCarrito} />} />
         <Route path="/perfil" element={<Perfil usuario={usuario} />} />
+
+        {/* ✅ Ruta de administración */}
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </Router>
   );
