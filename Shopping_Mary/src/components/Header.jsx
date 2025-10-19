@@ -8,6 +8,9 @@ export default function Header({ carrito }) {
   const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
 
+  // ✅ Cambia esto por el correo de tu admin real
+  const ADMIN_EMAIL = "claudiomonsalve1287@gmail.com";
+
   // Contador de productos en carrito
   const totalProductos = carrito.reduce((acc, p) => acc + (p.cantidad || 0), 0);
 
@@ -27,17 +30,18 @@ export default function Header({ carrito }) {
 
     getCurrentSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
 
-      // 🧾 Mostrar correo cuando cambia la sesión
-      if (currentUser) {
-        console.log("🔄 Cambio de sesión detectado. Usuario:", currentUser.email);
-      } else {
-        console.log("🚪 Usuario cerró sesión");
+        if (currentUser) {
+          console.log("🔄 Cambio de sesión detectado. Usuario:", currentUser.email);
+        } else {
+          console.log("🚪 Usuario cerró sesión");
+        }
       }
-    });
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -136,6 +140,26 @@ export default function Header({ carrito }) {
               {user ? (
                 <>
                   <p style={{ fontSize: "0.9rem", marginBottom: "10px" }}>{user.email}</p>
+
+                  {/* ✅ Botón solo para admin */}
+                  {user.email === ADMIN_EMAIL && (
+                    <button
+                      onClick={() => navigate("/admin")}
+                      style={{
+                        width: "100%",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
+                        border: "none",
+                        padding: "8px",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Administrar productos
+                    </button>
+                  )}
+
                   <button
                     onClick={signOut}
                     style={{
@@ -174,3 +198,4 @@ export default function Header({ carrito }) {
     </header>
   );
 }
+
