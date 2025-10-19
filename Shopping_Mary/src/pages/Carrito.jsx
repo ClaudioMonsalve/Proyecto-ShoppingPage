@@ -3,19 +3,39 @@ import React, { useState, useEffect } from "react";
 export default function Carrito({ carrito, setCarrito }) {
   const [loading, setLoading] = useState(false);
   const [carritoLocal, setCarritoLocal] = useState(() => {
-    // Inicializa carrito desde localStorage
     const saved = localStorage.getItem("carrito");
     return saved ? JSON.parse(saved) : carrito;
   });
 
-  // Cada vez que carritoLocal cambie, actualizar state principal y localStorage
+  // Sincroniza carritoLocal con carrito principal y localStorage
   useEffect(() => {
     setCarrito(carritoLocal);
     localStorage.setItem("carrito", JSON.stringify(carritoLocal));
   }, [carritoLocal, setCarrito]);
 
+  // Eliminar producto
   const eliminarProducto = (id) => {
     setCarritoLocal(carritoLocal.filter((producto) => producto.id !== id));
+  };
+
+  // Aumentar cantidad
+  const aumentarCantidad = (id) => {
+    setCarritoLocal(
+      carritoLocal.map((p) =>
+        p.id === id ? { ...p, cantidad: p.cantidad + 1 } : p
+      )
+    );
+  };
+
+  // Reducir cantidad
+  const reducirCantidad = (id) => {
+    setCarritoLocal(
+      carritoLocal.map((p) =>
+        p.id === id
+          ? { ...p, cantidad: p.cantidad > 1 ? p.cantidad - 1 : 1 }
+          : p
+      )
+    );
   };
 
   const total = carritoLocal.reduce(
@@ -83,18 +103,29 @@ export default function Carrito({ carrito, setCarrito }) {
                 style={{ width: "60px", borderRadius: "6px" }}
               />
               <span style={{ flex: 1, marginLeft: "15px" }}>{producto.nombre}</span>
-              <span style={{ margin: "0 25px 0 15px" }}>Cantidad: {producto.cantidad}</span>
+
+              {/* Controles de cantidad */}
+              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <button
+                  onClick={() => reducirCantidad(producto.id)}
+                  style={cantidadButtonStyle}
+                >
+                  −
+                </button>
+                <span>{producto.cantidad}</span>
+                <button
+                  onClick={() => aumentarCantidad(producto.id)}
+                  style={cantidadButtonStyle}
+                >
+                  +
+                </button>
+              </div>
+
               <span style={{ marginRight: "25px" }}>
                 Subtotal: ${producto.precio * producto.cantidad}
               </span>
               <button
-                style={{
-                  backgroundColor: "red",
-                  color: "white",
-                  borderRadius: "6px",
-                  padding: "5px 10px",
-                  cursor: "pointer",
-                }}
+                style={eliminarButtonStyle}
                 onClick={() => eliminarProducto(producto.id)}
               >
                 Eliminar
@@ -105,14 +136,7 @@ export default function Carrito({ carrito, setCarrito }) {
           <div style={{ textAlign: "right", marginTop: "10px", color: "white" }}>
             <h3>Total: ${total}</h3>
             <button
-              style={{
-                padding: "10px 20px",
-                borderRadius: "6px",
-                backgroundColor: "#646cff",
-                color: "white",
-                border: "none",
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
+              style={pagarButtonStyle}
               onClick={pagar}
               disabled={loading}
             >
@@ -124,3 +148,31 @@ export default function Carrito({ carrito, setCarrito }) {
     </div>
   );
 }
+
+// Estilos
+const cantidadButtonStyle = {
+  backgroundColor: "#646cff",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "5px 10px",
+  cursor: "pointer",
+};
+
+const eliminarButtonStyle = {
+  backgroundColor: "red",
+  color: "white",
+  borderRadius: "6px",
+  padding: "5px 10px",
+  cursor: "pointer",
+};
+
+const pagarButtonStyle = {
+  padding: "10px 20px",
+  borderRadius: "6px",
+  backgroundColor: "#646cff",
+  color: "white",
+  border: "none",
+  cursor: "pointer",
+};
+
