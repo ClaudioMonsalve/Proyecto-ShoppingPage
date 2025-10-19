@@ -32,26 +32,15 @@ export default function Admin() {
     if (!nombre || !precio || !stock) return alert("Nombre, precio y stock son obligatorios");
     setCargando(true);
     const { data, error } = await supabase.from("productos").insert([
-      {
-        nombre,
-        precio: parseFloat(precio),
-        stock: parseInt(stock),
-        imagen: imagen || null,
-        descripcion,
-      },
+      { nombre, precio: parseFloat(precio), stock: parseInt(stock), imagen: imagen || null, descripcion },
     ]);
 
     if (error) {
-      if (error.status === 403) alert("🚫 No tienes permisos para agregar productos.");
-      else alert("❌ Error al agregar producto: " + error.message);
+      alert(error.status === 403 ? "🚫 No tienes permisos para agregar productos." : "❌ Error al agregar producto: " + error.message);
       console.error(error);
     } else {
       alert("✅ Producto agregado correctamente");
-      setNombre("");
-      setPrecio("");
-      setStock("");
-      setImagen("");
-      setDescripcion("");
+      setNombre(""); setPrecio(""); setStock(""); setImagen(""); setDescripcion("");
       fetchProductos();
     }
     setCargando(false);
@@ -64,23 +53,19 @@ export default function Admin() {
     const { error } = await supabase.from("productos").delete().eq("id", id);
 
     if (error) {
-      if (error.status === 403) alert("🚫 No tienes permisos para eliminar productos.");
-      else alert("❌ Error al eliminar producto: " + error.message);
+      alert(error.status === 403 ? "🚫 No tienes permisos para eliminar productos." : "❌ Error al eliminar producto: " + error.message);
       console.error(error);
-    } else {
-      alert("✅ Producto eliminado correctamente");
-      fetchProductos();
-    }
+    } else fetchProductos();
     setCargando(false);
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "900px", margin: "0 auto", fontFamily: "'Segoe UI', sans-serif" }}>
+    <div style={{ padding: "20px", maxWidth: "1000px", margin: "0 auto", fontFamily: "'Segoe UI', sans-serif", color: "#fff" }}>
       <h1 style={{ textAlign: "center", marginBottom: "30px" }}>🛠️ Panel de Administración</h1>
 
       {/* Formulario */}
-      <div style={{ marginBottom: "40px", padding: "20px", backgroundColor: "#f9f9f9", borderRadius: "10px", boxShadow: "0 3px 10px rgba(0,0,0,0.1)" }}>
-        <h2 style={{ marginBottom: "15px" }}>Agregar Producto</h2>
+      <div style={formContainerStyle}>
+        <h2>Agregar Producto</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
           <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} style={inputStyle} />
           <input type="number" placeholder="Precio" value={precio} onChange={(e) => setPrecio(e.target.value)} style={inputStyle} />
@@ -105,7 +90,7 @@ export default function Admin() {
                 {p.imagen && <img src={p.imagen} alt={p.nombre} style={imgStyle} />}
                 <div>
                   <strong>{p.nombre}</strong> - ${p.precio.toFixed(2)} | Stock: {p.stock}
-                  <p style={{ margin: "5px 0 0 0", color: "#555" }}>{p.descripcion}</p>
+                  <p style={{ margin: "5px 0 0 0", color: "#bbb" }}>{p.descripcion}</p>
                 </div>
               </div>
               <button onClick={() => eliminarProducto(p.id)} disabled={cargando} style={deleteButtonStyle}>
@@ -117,7 +102,7 @@ export default function Admin() {
       </div>
 
       {/* Pedidos */}
-      <div style={{ padding: "20px", backgroundColor: "#f9f9f9", borderRadius: "10px", boxShadow: "0 3px 10px rgba(0,0,0,0.05)" }}>
+      <div style={formContainerStyle}>
         <h2>Pedidos recibidos</h2>
         <p>(Aquí podrás ver los pedidos que han realizado los clientes)</p>
       </div>
@@ -126,22 +111,33 @@ export default function Admin() {
 }
 
 // Estilos reutilizables
+const formContainerStyle = {
+  marginBottom: "40px",
+  padding: "20px",
+  backgroundColor: "#2c2c2c",
+  borderRadius: "10px",
+  boxShadow: "0 3px 10px rgba(0,0,0,0.3)",
+};
+
 const inputStyle = {
   padding: "10px",
   borderRadius: "6px",
-  border: "1px solid #ccc",
+  border: "1px solid #555",
+  backgroundColor: "#1f1f1f",
+  color: "#fff",
   fontSize: "1rem",
 };
 
 const buttonStyle = {
   marginTop: "15px",
   padding: "12px 25px",
-  backgroundColor: "#242424",
-  color: "white",
+  backgroundColor: "#ff8c00",
+  color: "#fff",
   border: "none",
   borderRadius: "8px",
   cursor: "pointer",
   fontWeight: "bold",
+  transition: "0.2s",
 };
 
 const productCardStyle = {
@@ -149,9 +145,9 @@ const productCardStyle = {
   justifyContent: "space-between",
   alignItems: "center",
   padding: "15px",
-  backgroundColor: "#fff",
-  borderRadius: "8px",
-  boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+  backgroundColor: "#1f1f1f",
+  borderRadius: "10px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
 };
 
 const imgStyle = {
@@ -163,9 +159,10 @@ const imgStyle = {
 
 const deleteButtonStyle = {
   padding: "8px 12px",
-  backgroundColor: "red",
+  backgroundColor: "#e74c3c",
   color: "white",
   border: "none",
   borderRadius: "6px",
   cursor: "pointer",
+  transition: "0.2s",
 };
