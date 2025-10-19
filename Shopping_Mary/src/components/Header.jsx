@@ -12,19 +12,33 @@ export default function Header({ carrito }) {
   const totalProductos = carrito.reduce((acc, p) => acc + (p.cantidad || 0), 0);
 
   useEffect(() => {
-    // ✅ Obtener sesión activa al cargar
     const getCurrentSession = async () => {
       const { data } = await supabase.auth.getSession();
-      setUser(data?.session?.user ?? null);
+      const currentUser = data?.session?.user ?? null;
+      setUser(currentUser);
+
+      // 🧾 Mostrar el correo detectado (para pruebas)
+      if (currentUser) {
+        console.log("✅ Usuario autenticado:", currentUser.email);
+      } else {
+        console.log("❌ No hay usuario autenticado");
+      }
     };
+
     getCurrentSession();
 
-    // ✅ Escuchar cambios de sesión (login / logout)
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      // 🧾 Mostrar correo cuando cambia la sesión
+      if (currentUser) {
+        console.log("🔄 Cambio de sesión detectado. Usuario:", currentUser.email);
+      } else {
+        console.log("🚪 Usuario cerró sesión");
+      }
     });
 
-    // Cleanup listener
     return () => {
       authListener.subscription.unsubscribe();
     };
