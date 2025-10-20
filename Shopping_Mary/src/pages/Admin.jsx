@@ -31,7 +31,7 @@ export default function Admin() {
     fetchProductos();
   }, []);
 
-  // Preview de imagen
+  // Preview
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setImagenFile(file);
@@ -41,7 +41,7 @@ export default function Admin() {
     reader.readAsDataURL(file);
   };
 
-  // Convertir file a bytea
+  // Convertir file a bytea (ArrayBuffer → hex)
   const fileToBytea = async (file) => {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
@@ -74,7 +74,6 @@ export default function Admin() {
     setCargando(false);
   };
 
-  // Eliminar producto
   const eliminarProducto = async (id) => {
     if (!window.confirm("¿Seguro quieres eliminar este producto?")) return;
     setCargando(true);
@@ -88,7 +87,6 @@ export default function Admin() {
     <div style={{ padding: 20, maxWidth: 1000, margin: "0 auto", color: "#fff" }}>
       <h1 style={{ textAlign: "center", marginBottom: 30 }}>🛠️ Panel de Administración</h1>
 
-      {/* Formulario agregar */}
       <div style={{ marginBottom: 40, padding: 20, backgroundColor: "#2c2c2c", borderRadius: 10 }}>
         <h2>Agregar Producto</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
@@ -96,45 +94,34 @@ export default function Admin() {
           <input type="number" placeholder="Precio" value={precio} onChange={(e) => setPrecio(e.target.value)} style={inputStyle} />
           <input type="number" placeholder="Stock" value={stock} onChange={(e) => setStock(e.target.value)} style={inputStyle} />
           <input type="file" accept="image/*" onChange={handleFileChange} style={inputStyle} />
-          {imagenPreview && (
-            <img
-              src={imagenPreview}
-              alt="Preview"
-              style={{ gridColumn: "1 / 3", maxHeight: 150, objectFit: "contain", borderRadius: 8, backgroundColor: "#111" }}
-            />
-          )}
-          <input
-            placeholder="Descripción"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            style={{ ...inputStyle, gridColumn: "1 / 3" }}
-          />
+          {imagenPreview && <img src={imagenPreview} alt="Preview" style={{ gridColumn: "1 / 3", maxHeight: 150, objectFit: "cover", borderRadius: 8 }} />}
+          <input placeholder="Descripción" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} style={{ ...inputStyle, gridColumn: "1 / 3" }} />
         </div>
         <button onClick={agregarProducto} disabled={cargando} style={buttonStyle}>
           {cargando ? "Cargando..." : "Agregar"}
         </button>
       </div>
 
-      {/* Lista de productos */}
       <div>
         <h2 style={{ marginBottom: 15 }}>Productos</h2>
         {cargando && <p>Cargando productos...</p>}
         {productos.length === 0 && !cargando && <p>No hay productos aún.</p>}
-        <div style={{ display: "grid", gap: 15, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
+        <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: 15 }}>
           {productos.map((p) => (
-            <div key={p.id} style={productCardStyle}>
-              <div style={{ textAlign: "center" }}>
-                {p.imagen && <img src={`data:image/png;base64,${hexToBase64(p.imagen)}`} alt={p.nombre} style={productImgStyle} />}
-                <strong>{p.nombre}</strong>
-                <p>${p.precio.toFixed(2)} | Stock: {p.stock}</p>
-                <p style={{ color: "#bbb", fontSize: "0.9rem" }}>{p.descripcion}</p>
+            <li key={p.id} style={productCardStyle}>
+              <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+                {p.imagen && <img src={`data:image/png;base64,${hexToBase64(p.imagen)}`} alt={p.nombre} style={imgStyle} />}
+                <div>
+                  <strong>{p.nombre}</strong> - ${p.precio.toFixed(2)} | Stock: {p.stock}
+                  <p style={{ margin: "5px 0 0 0", color: "#bbb" }}>{p.descripcion}</p>
+                </div>
               </div>
               <button onClick={() => eliminarProducto(p.id)} disabled={cargando} style={deleteButtonStyle}>
                 Eliminar
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   );
@@ -153,6 +140,6 @@ function hexToBase64(hex) {
 // Estilos
 const inputStyle = { padding: 10, borderRadius: 6, border: "1px solid #555", backgroundColor: "#1f1f1f", color: "#fff", fontSize: "1rem" };
 const buttonStyle = { marginTop: 15, padding: "12px 25px", backgroundColor: "#ff8c00", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: "bold" };
-const productCardStyle = { padding: 15, backgroundColor: "#1f1f1f", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center" };
-const productImgStyle = { width: 120, height: 120, objectFit: "contain", borderRadius: 8, backgroundColor: "#111", marginBottom: 10 };
+const productCardStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", padding: 15, backgroundColor: "#1f1f1f", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.2)" };
+const imgStyle = { width: 80, height: 80, objectFit: "cover", borderRadius: 6 };
 const deleteButtonStyle = { padding: "8px 12px", backgroundColor: "#e74c3c", color: "white", border: "none", borderRadius: 6, cursor: "pointer" };
