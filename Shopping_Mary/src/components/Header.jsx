@@ -139,7 +139,7 @@ export default function Header({ carrito }) {
             >
               {user ? (
                 <>
-                  <p style={{ fontSize: "0.9rem", marginBottom: "10px" }}>{user.email}</p>
+                  <p style={{ fontSize: "0.9rem", marginBottom: "10px" }}>{user.nombre}</p>
 
                   {/* ✅ Botón solo para admin */}
                   {user.email === ADMIN_EMAIL && (
