@@ -31,34 +31,41 @@ export default function Admin() {
   // Manejar cambio de archivo y generar preview
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setImagenFile(null);
-    setImagenPreview(null);
-
+    setImagenFile(file);
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        // ArrayBuffer para bytea
-        setImagenFile(reader.result);
-        // Preview para mostrar en la UI
-        setImagenPreview(URL.createObjectURL(file));
-      };
-      reader.readAsArrayBuffer(file);
+      reader.onload = () => setImagenPreview(reader.result);
+      reader.readAsDataURL(file);
+    } else {
+      setImagenPreview(null);
     }
   };
 
-  // Insertar producto
+  // Convertir archivo a Base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result.split(",")[1]; // solo contenido Base64
+        resolve(base64);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  // Agregar producto
   const agregarProducto = async () => {
     if (!nombre || !precio || !stock) return alert("Nombre, precio y stock son obligatorios");
     setCargando(true);
 
+    let imagenBase64 = null;
+    if (imagenFile) {
+      imagenBase64 = await fileToBase64(imagenFile);
+    }
+
     const { error } = await supabase.from("productos").insert([
-      {
-        nombre,
-        precio: parseFloat(precio),
-        stock: parseInt(stock),
-        imagen: imagenFile, // bytea
-        descripcion,
-      },
+      { nombre, precio: parseFloat(precio), stock: parseInt(stock), imagen: imagenBase64, descripcion },
     ]);
 
     if (error) {
@@ -79,13 +86,6 @@ export default function Admin() {
     if (error) alert("❌ Error al eliminar producto: " + error.message);
     else fetchProductos();
     setCargando(false);
-  };
-
-  // Convertir bytea a URL para mostrar
-  const getImagenUrl = (byteaData) => {
-    if (!byteaData) return null;
-    const blob = new Blob([new Uint8Array(byteaData)], { type: "image/png" });
-    return URL.createObjectURL(blob);
   };
 
   return (
@@ -117,7 +117,7 @@ export default function Admin() {
           {productos.map((p) => (
             <li key={p.id} style={productCardStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                {p.imagen && <img src={getImagenUrl(p.imagen)} alt={p.nombre} style={imgStyle} />}
+                {p.imagen && <img src={`data:image/png;base64,${p.imagen}`} alt={p.nombre} style={imgStyle} />}
                 <div>
                   <strong>{p.nombre}</strong> - ${p.precio.toFixed(2)} | Stock: {p.stock}
                   <p style={{ margin: "5px 0 0 0", color: "#bbb" }}>{p.descripcion}</p>
