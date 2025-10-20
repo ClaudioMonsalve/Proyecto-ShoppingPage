@@ -6,11 +6,16 @@ export default function Home({ carrito, setCarrito }) {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
 
-  // Convierte hex a Base64
-  const hexToBase64 = (hexString) => {
-    return btoa(
-      hexString.match(/\w{2}/g).map((a) => String.fromCharCode(parseInt(a, 16))).join("")
-    );
+  // Convierte bytea (hex con \x) a Base64
+  const byteaToBase64 = (bytea) => {
+    if (!bytea) return null;
+    // quitar el prefijo '\x'
+    const hex = bytea.startsWith("\\x") ? bytea.slice(2) : bytea;
+    let str = "";
+    for (let i = 0; i < hex.length; i += 2) {
+      str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+    }
+    return btoa(str);
   };
 
   useEffect(() => {
@@ -87,11 +92,13 @@ export default function Home({ carrito, setCarrito }) {
           const productoEnCarrito = carrito.find((p) => p.id === producto.id);
           const cantidad = productoEnCarrito ? productoEnCarrito.cantidad : 0;
 
+          const imagenBase64 = byteaToBase64(producto.imagen);
+
           return (
             <div key={producto.id} style={cardStyle}>
-              {producto.imagen && (
+              {imagenBase64 && (
                 <img
-                  src={`data:image/png;base64,${hexToBase64(producto.imagen)}`}
+                  src={`data:image/png;base64,${imagenBase64}`}
                   alt={producto.nombre}
                   style={imgStyle}
                 />
@@ -134,9 +141,9 @@ const cardStyle = {
 const imgStyle = {
   width: "100%",
   height: "150px",
-  objectFit: "contain", // <-- imagen completa sin recorte
+  objectFit: "contain", // mantiene proporción completa
   borderRadius: 8,
-  backgroundColor: "#111", // opcional, para ver fondo si la imagen no llena todo
+  backgroundColor: "#111",
 };
 
 const buttonStyle = {
