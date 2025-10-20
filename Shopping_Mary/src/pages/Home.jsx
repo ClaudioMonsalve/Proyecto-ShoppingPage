@@ -4,6 +4,7 @@ import { supabase } from "../supabaseClient";
 export default function Home({ carrito, setCarrito }) {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState(""); // nuevo estado para la búsqueda
 
   // Traer productos de Supabase al cargar la página
   useEffect(() => {
@@ -38,13 +39,35 @@ export default function Home({ carrito, setCarrito }) {
     }
   };
 
+  // Filtrar productos según la búsqueda
+  const productosFiltrados = productos.filter((producto) =>
+    producto.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
   if (loading) return <p style={{ color: "white", textAlign: "center" }}>Cargando productos...</p>;
 
   return (
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
-      <h2 style={{ color: "white", marginBottom: "30px", textAlign: "center" }}>🛍️ Productos</h2>
+      <h2 style={{ color: "white", marginBottom: "20px", textAlign: "center" }}>🛍️ Productos</h2>
+
+      {/* Barra de búsqueda */}
+      <input
+        type="text"
+        placeholder="Buscar productos..."
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "10px",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          marginBottom: "20px",
+          fontSize: "1rem",
+        }}
+      />
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
-        {productos.map((producto) => {
+        {productosFiltrados.map((producto) => {
           const productoEnCarrito = carrito.find((p) => p.id === producto.id);
           const cantidad = productoEnCarrito ? productoEnCarrito.cantidad : 0;
 

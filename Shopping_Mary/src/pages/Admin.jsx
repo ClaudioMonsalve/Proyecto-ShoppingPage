@@ -6,8 +6,8 @@ export default function Admin() {
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("");
   const [stock, setStock] = useState("");
-  const [imagen, setImagen] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [imagenFile, setImagenFile] = useState(null); // <-- archivo local
   const [cargando, setCargando] = useState(false);
 
   // Cargar productos
@@ -27,12 +27,35 @@ export default function Admin() {
     fetchProductos();
   }, []);
 
+  // Subir imagen a Supabase Storage y devolver URL pública
+  const subirImagen = async (file) => {
+    if (!file) return null;
+    const fileName = `${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage
+      .from("productos") // crea un bucket llamado "productos" en Supabase Storage
+      .upload(fileName, file);
+
+    if (error) {
+      console.error("❌ Error al subir imagen:", error);
+      return null;
+    }
+
+    const { publicUrl } = supabase.storage.from("productos").getPublicUrl(fileName);
+    return publicUrl;
+  };
+
   // Agregar producto
   const agregarProducto = async () => {
     if (!nombre || !precio || !stock) return alert("Nombre, precio y stock son obligatorios");
     setCargando(true);
+
+    let imagenURL = null;
+    if (imagenFile) {
+      imagenURL = await subirImagen(imagenFile);
+    }
+
     const { data, error } = await supabase.from("productos").insert([
-      { nombre, precio: parseFloat(precio), stock: parseInt(stock), imagen: imagen || null, descripcion },
+      { nombre, precio: parseFloat(precio), stock: parseInt(stock), imagen: imagenURL, descripcion },
     ]);
 
     if (error) {
@@ -40,18 +63,17 @@ export default function Admin() {
       console.error(error);
     } else {
       alert("✅ Producto agregado correctamente");
-      setNombre(""); setPrecio(""); setStock(""); setImagen(""); setDescripcion("");
+      setNombre(""); setPrecio(""); setStock(""); setDescripcion(""); setImagenFile(null);
       fetchProductos();
     }
     setCargando(false);
   };
 
-  // Eliminar producto
+  // Eliminar producto (igual que antes)
   const eliminarProducto = async (id) => {
     if (!window.confirm("¿Seguro quieres eliminar este producto?")) return;
     setCargando(true);
     const { error } = await supabase.from("productos").delete().eq("id", id);
-
     if (error) {
       alert(error.status === 403 ? "🚫 No tienes permisos para eliminar productos." : "❌ Error al eliminar producto: " + error.message);
       console.error(error);
@@ -64,13 +86,13 @@ export default function Admin() {
       <h1 style={{ textAlign: "center", marginBottom: "30px" }}>🛠️ Panel de Administración</h1>
 
       {/* Formulario */}
-      <div style={formContainerStyle}>
+      <div style={{ marginBottom: "40px", padding: "20px", backgroundColor: "#2c2c2c", borderRadius: "10px" }}>
         <h2>Agregar Producto</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
           <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} style={inputStyle} />
           <input type="number" placeholder="Precio" value={precio} onChange={(e) => setPrecio(e.target.value)} style={inputStyle} />
           <input type="number" placeholder="Stock" value={stock} onChange={(e) => setStock(e.target.value)} style={inputStyle} />
-          <input placeholder="Imagen (URL)" value={imagen} onChange={(e) => setImagen(e.target.value)} style={inputStyle} />
+          <input type="file" accept="image/*" onChange={(e) => setImagenFile(e.target.files[0])} style={inputStyle} />
           <input placeholder="Descripción" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} style={{ ...inputStyle, gridColumn: "1 / 3" }} />
         </div>
         <button onClick={agregarProducto} disabled={cargando} style={buttonStyle}>
@@ -79,7 +101,7 @@ export default function Admin() {
       </div>
 
       {/* Lista de productos */}
-      <div style={{ marginBottom: "40px" }}>
+      <div>
         <h2 style={{ marginBottom: "15px" }}>Productos</h2>
         {cargando && <p>Cargando productos...</p>}
         {productos.length === 0 && !cargando && <p>No hay productos aún.</p>}
@@ -93,32 +115,16 @@ export default function Admin() {
                   <p style={{ margin: "5px 0 0 0", color: "#bbb" }}>{p.descripcion}</p>
                 </div>
               </div>
-              <button onClick={() => eliminarProducto(p.id)} disabled={cargando} style={deleteButtonStyle}>
-                Eliminar
-              </button>
+              <button onClick={() => eliminarProducto(p.id)} disabled={cargando} style={deleteButtonStyle}>Eliminar</button>
             </li>
           ))}
         </ul>
-      </div>
-
-      {/* Pedidos */}
-      <div style={formContainerStyle}>
-        <h2>Pedidos recibidos</h2>
-        <p>(Aquí podrás ver los pedidos que han realizado los clientes)</p>
       </div>
     </div>
   );
 }
 
 // Estilos reutilizables
-const formContainerStyle = {
-  marginBottom: "40px",
-  padding: "20px",
-  backgroundColor: "#2c2c2c",
-  borderRadius: "10px",
-  boxShadow: "0 3px 10px rgba(0,0,0,0.3)",
-};
-
 const inputStyle = {
   padding: "10px",
   borderRadius: "6px",
@@ -164,5 +170,4 @@ const deleteButtonStyle = {
   border: "none",
   borderRadius: "6px",
   cursor: "pointer",
-  transition: "0.2s",
 };
