@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 
 export default function Home({ carrito, setCarrito }) {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [busqueda, setBusqueda] = useState(""); // nuevo estado para la búsqueda
+  const [busqueda, setBusqueda] = useState("");
 
-  // Traer productos de Supabase al cargar la página
   useEffect(() => {
     const fetchProductos = async () => {
       setLoading(true);
+
+      // Traer productos de la tabla
       const { data, error } = await supabase
         .from("productos")
         .select("*")
@@ -17,9 +18,22 @@ export default function Home({ carrito, setCarrito }) {
 
       if (error) {
         console.error("❌ Error al traer productos:", error);
-      } else {
-        setProductos(data);
+        setLoading(false);
+        return;
       }
+
+      // Generar URL pública para cada imagen (si existe)
+      const productosConUrl = data.map((producto) => {
+        if (producto.imagen) {
+          const { publicUrl } = supabase.storage
+            .from("productos") // nombre del bucket
+            .getPublicUrl(producto.imagen); // producto.imagen = nombre del archivo
+          return { ...producto, imagenUrl: publicUrl };
+        }
+        return producto;
+      });
+
+      setProductos(productosConUrl);
       setLoading(false);
     };
 
@@ -39,16 +53,19 @@ export default function Home({ carrito, setCarrito }) {
     }
   };
 
-  // Filtrar productos según la búsqueda
+  // Filtrar productos por búsqueda en tiempo real
   const productosFiltrados = productos.filter((producto) =>
     producto.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  if (loading) return <p style={{ color: "white", textAlign: "center" }}>Cargando productos...</p>;
+  if (loading)
+    return <p style={{ color: "white", textAlign: "center" }}>Cargando productos...</p>;
 
   return (
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
-      <h2 style={{ color: "white", marginBottom: "20px", textAlign: "center" }}>🛍️ Productos</h2>
+      <h2 style={{ color: "white", marginBottom: "20px", textAlign: "center" }}>
+        🛍️ Productos
+      </h2>
 
       {/* Barra de búsqueda */}
       <input
@@ -66,18 +83,34 @@ export default function Home({ carrito, setCarrito }) {
         }}
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "20px",
+        }}
+      >
         {productosFiltrados.map((producto) => {
           const productoEnCarrito = carrito.find((p) => p.id === producto.id);
           const cantidad = productoEnCarrito ? productoEnCarrito.cantidad : 0;
 
           return (
             <div key={producto.id} style={cardStyle}>
-              {producto.imagen && <img src={producto.imagen} alt={producto.nombre} style={imgStyle} />}
+              {producto.imagenUrl && (
+                <img src={producto.imagenUrl} alt={producto.nombre} style={imgStyle} />
+              )}
               <h3 style={{ margin: "10px 0 5px 0" }}>{producto.nombre}</h3>
-              <p style={{ margin: "5px 0", fontWeight: "bold" }}>${producto.precio.toFixed(2)}</p>
-              {producto.descripcion && <p style={{ fontSize: "0.9rem", color: "#555", minHeight: "40px" }}>{producto.descripcion}</p>}
-              <p style={{ margin: "5px 0", fontSize: "0.9rem" }}>En carrito: {cantidad}</p>
+              <p style={{ margin: "5px 0", fontWeight: "bold" }}>
+                ${producto.precio.toFixed(2)}
+              </p>
+              {producto.descripcion && (
+                <p style={{ fontSize: "0.9rem", color: "#555", minHeight: "40px" }}>
+                  {producto.descripcion}
+                </p>
+              )}
+              <p style={{ margin: "5px 0", fontSize: "0.9rem" }}>
+                En carrito: {cantidad}
+              </p>
               <button onClick={() => agregarAlCarrito(producto)} style={buttonStyle}>
                 Agregar al carrito
               </button>
@@ -89,7 +122,7 @@ export default function Home({ carrito, setCarrito }) {
   );
 }
 
-// Estilos reutilizables
+// Estilos
 const cardStyle = {
   backgroundColor: "#fff",
   padding: "15px",
@@ -119,4 +152,3 @@ const buttonStyle = {
   fontWeight: "bold",
   transition: "0.2s",
 };
-

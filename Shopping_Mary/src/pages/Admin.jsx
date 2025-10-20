@@ -6,8 +6,9 @@ export default function Admin() {
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("");
   const [stock, setStock] = useState("");
+  const [imagenFile, setImagenFile] = useState(null);
+  const [imagenPreview, setImagenPreview] = useState(null);
   const [descripcion, setDescripcion] = useState("");
-  const [imagenFile, setImagenFile] = useState(null); // <-- archivo local
   const [cargando, setCargando] = useState(false);
 
   // Cargar productos
@@ -16,10 +17,10 @@ export default function Admin() {
     const { data, error } = await supabase.from("productos").select("*").order("id", { ascending: true });
     if (error) {
       alert("❌ Error al cargar productos: " + error.message);
-      console.error(error);
-    } else {
-      setProductos(data);
+      setCargando(false);
+      return;
     }
+    setProductos(data);
     setCargando(false);
   };
 
@@ -27,72 +28,79 @@ export default function Admin() {
     fetchProductos();
   }, []);
 
-  // Subir imagen a Supabase Storage y devolver URL pública
-  const subirImagen = async (file) => {
-    if (!file) return null;
-    const fileName = `${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage
-      .from("productos") // crea un bucket llamado "productos" en Supabase Storage
-      .upload(fileName, file);
+  // Manejar cambio de archivo y generar preview
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setImagenFile(null);
+    setImagenPreview(null);
 
-    if (error) {
-      console.error("❌ Error al subir imagen:", error);
-      return null;
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // ArrayBuffer para bytea
+        setImagenFile(reader.result);
+        // Preview para mostrar en la UI
+        setImagenPreview(URL.createObjectURL(file));
+      };
+      reader.readAsArrayBuffer(file);
     }
-
-    const { publicUrl } = supabase.storage.from("productos").getPublicUrl(fileName);
-    return publicUrl;
   };
 
-  // Agregar producto
+  // Insertar producto
   const agregarProducto = async () => {
     if (!nombre || !precio || !stock) return alert("Nombre, precio y stock son obligatorios");
     setCargando(true);
 
-    let imagenURL = null;
-    if (imagenFile) {
-      imagenURL = await subirImagen(imagenFile);
-    }
-
-    const { data, error } = await supabase.from("productos").insert([
-      { nombre, precio: parseFloat(precio), stock: parseInt(stock), imagen: imagenURL, descripcion },
+    const { error } = await supabase.from("productos").insert([
+      {
+        nombre,
+        precio: parseFloat(precio),
+        stock: parseInt(stock),
+        imagen: imagenFile, // bytea
+        descripcion,
+      },
     ]);
 
     if (error) {
-      alert(error.status === 403 ? "🚫 No tienes permisos para agregar productos." : "❌ Error al agregar producto: " + error.message);
-      console.error(error);
+      alert("❌ Error al agregar producto: " + error.message);
     } else {
       alert("✅ Producto agregado correctamente");
-      setNombre(""); setPrecio(""); setStock(""); setDescripcion(""); setImagenFile(null);
+      setNombre(""); setPrecio(""); setStock(""); setImagenFile(null); setImagenPreview(null); setDescripcion("");
       fetchProductos();
     }
     setCargando(false);
   };
 
-  // Eliminar producto (igual que antes)
+  // Eliminar producto
   const eliminarProducto = async (id) => {
     if (!window.confirm("¿Seguro quieres eliminar este producto?")) return;
     setCargando(true);
     const { error } = await supabase.from("productos").delete().eq("id", id);
-    if (error) {
-      alert(error.status === 403 ? "🚫 No tienes permisos para eliminar productos." : "❌ Error al eliminar producto: " + error.message);
-      console.error(error);
-    } else fetchProductos();
+    if (error) alert("❌ Error al eliminar producto: " + error.message);
+    else fetchProductos();
     setCargando(false);
   };
 
+  // Convertir bytea a URL para mostrar
+  const getImagenUrl = (byteaData) => {
+    if (!byteaData) return null;
+    const blob = new Blob([new Uint8Array(byteaData)], { type: "image/png" });
+    return URL.createObjectURL(blob);
+  };
+
   return (
-    <div style={{ padding: "20px", maxWidth: "1000px", margin: "0 auto", fontFamily: "'Segoe UI', sans-serif", color: "#fff" }}>
+    <div style={{ padding: "20px", maxWidth: "1000px", margin: "0 auto", color: "#fff", fontFamily: "'Segoe UI', sans-serif" }}>
       <h1 style={{ textAlign: "center", marginBottom: "30px" }}>🛠️ Panel de Administración</h1>
 
       {/* Formulario */}
-      <div style={{ marginBottom: "40px", padding: "20px", backgroundColor: "#2c2c2c", borderRadius: "10px" }}>
+      <div style={formContainerStyle}>
         <h2>Agregar Producto</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
           <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} style={inputStyle} />
           <input type="number" placeholder="Precio" value={precio} onChange={(e) => setPrecio(e.target.value)} style={inputStyle} />
           <input type="number" placeholder="Stock" value={stock} onChange={(e) => setStock(e.target.value)} style={inputStyle} />
-          <input type="file" accept="image/*" onChange={(e) => setImagenFile(e.target.files[0])} style={inputStyle} />
+          <input type="file" accept="image/*" onChange={handleFileChange} style={inputStyle} />
+          {imagenPreview && <img src={imagenPreview} alt="Preview" style={{ gridColumn: "1 / 3", maxHeight: "150px", objectFit: "cover", borderRadius: "8px" }} />}
           <input placeholder="Descripción" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} style={{ ...inputStyle, gridColumn: "1 / 3" }} />
         </div>
         <button onClick={agregarProducto} disabled={cargando} style={buttonStyle}>
@@ -109,13 +117,15 @@ export default function Admin() {
           {productos.map((p) => (
             <li key={p.id} style={productCardStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                {p.imagen && <img src={p.imagen} alt={p.nombre} style={imgStyle} />}
+                {p.imagen && <img src={getImagenUrl(p.imagen)} alt={p.nombre} style={imgStyle} />}
                 <div>
                   <strong>{p.nombre}</strong> - ${p.precio.toFixed(2)} | Stock: {p.stock}
                   <p style={{ margin: "5px 0 0 0", color: "#bbb" }}>{p.descripcion}</p>
                 </div>
               </div>
-              <button onClick={() => eliminarProducto(p.id)} disabled={cargando} style={deleteButtonStyle}>Eliminar</button>
+              <button onClick={() => eliminarProducto(p.id)} disabled={cargando} style={deleteButtonStyle}>
+                Eliminar
+              </button>
             </li>
           ))}
         </ul>
@@ -124,50 +134,10 @@ export default function Admin() {
   );
 }
 
-// Estilos reutilizables
-const inputStyle = {
-  padding: "10px",
-  borderRadius: "6px",
-  border: "1px solid #555",
-  backgroundColor: "#1f1f1f",
-  color: "#fff",
-  fontSize: "1rem",
-};
-
-const buttonStyle = {
-  marginTop: "15px",
-  padding: "12px 25px",
-  backgroundColor: "#ff8c00",
-  color: "#fff",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
-  transition: "0.2s",
-};
-
-const productCardStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "15px",
-  backgroundColor: "#1f1f1f",
-  borderRadius: "10px",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-};
-
-const imgStyle = {
-  width: "80px",
-  height: "80px",
-  objectFit: "cover",
-  borderRadius: "6px",
-};
-
-const deleteButtonStyle = {
-  padding: "8px 12px",
-  backgroundColor: "#e74c3c",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
+// Estilos
+const formContainerStyle = { marginBottom: "40px", padding: "20px", backgroundColor: "#2c2c2c", borderRadius: "10px" };
+const inputStyle = { padding: "10px", borderRadius: "6px", border: "1px solid #555", backgroundColor: "#1f1f1f", color: "#fff", fontSize: "1rem" };
+const buttonStyle = { marginTop: "15px", padding: "12px 25px", backgroundColor: "#ff8c00", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" };
+const productCardStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px", backgroundColor: "#1f1f1f", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.2)" };
+const imgStyle = { width: "80px", height: "80px", objectFit: "cover", borderRadius: "6px" };
+const deleteButtonStyle = { padding: "8px 12px", backgroundColor: "#e74c3c", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" };
