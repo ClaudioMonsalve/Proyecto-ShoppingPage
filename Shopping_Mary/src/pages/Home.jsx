@@ -10,7 +10,6 @@ export default function Home({ carrito, setCarrito }) {
     const fetchProductos = async () => {
       setLoading(true);
 
-      // Traer productos de la tabla
       const { data, error } = await supabase
         .from("productos")
         .select("*")
@@ -22,13 +21,13 @@ export default function Home({ carrito, setCarrito }) {
         return;
       }
 
-      // Generar URL pública para cada imagen (si existe)
+      // Convertir Base64 de bytea a URL para mostrar
       const productosConUrl = data.map((producto) => {
         if (producto.imagen) {
-          const { publicUrl } = supabase.storage
-            .from("productos") // nombre del bucket
-            .getPublicUrl(producto.imagen); // producto.imagen = nombre del archivo
-          return { ...producto, imagenUrl: publicUrl };
+          return {
+            ...producto,
+            imagenUrl: `data:image/png;base64,${producto.imagen}`,
+          };
         }
         return producto;
       });
@@ -53,7 +52,6 @@ export default function Home({ carrito, setCarrito }) {
     }
   };
 
-  // Filtrar productos por búsqueda en tiempo real
   const productosFiltrados = productos.filter((producto) =>
     producto.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
@@ -67,7 +65,6 @@ export default function Home({ carrito, setCarrito }) {
         🛍️ Productos
       </h2>
 
-      {/* Barra de búsqueda */}
       <input
         type="text"
         placeholder="Buscar productos..."
@@ -122,7 +119,6 @@ export default function Home({ carrito, setCarrito }) {
   );
 }
 
-// Estilos
 const cardStyle = {
   backgroundColor: "#fff",
   padding: "15px",
