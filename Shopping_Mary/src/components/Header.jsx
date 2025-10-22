@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { Link, useNavigate } from "react-router-dom";
-import { FaShoppingBag, FaUserCircle, FaStoreAlt } from "react-icons/fa";
+import { FaShoppingBag, FaUserCircle, FaStoreAlt, FaBars, FaTimes } from "react-icons/fa";
 
 export default function Header({ carrito }) {
   const [user, setUser] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
   const navigate = useNavigate();
 
   const ADMIN_EMAIL = "claudiomonsalve1287@gmail.com";
@@ -47,15 +48,20 @@ export default function Header({ carrito }) {
           <h1 style={styles.logoText}>NovaShop</h1>
         </div>
 
+        {/* HAMBURGER ICON */}
+        <div style={styles.hamburger} onClick={() => setMobileMenu(!mobileMenu)}>
+          {mobileMenu ? <FaTimes size={28} color="#fff" /> : <FaBars size={28} color="#fff" />}
+        </div>
+
         {/* LINKS */}
-        <nav style={styles.navLinks}>
-          <Link to="/" style={styles.link}>Inicio</Link>
-          <Link to="/carrito" style={styles.link}>Carrito</Link>
-          <Link to="/about" style={styles.link}>Nosotros</Link>
+        <nav style={{...styles.navLinks, display: mobileMenu ? "flex" : "none"}}>
+          <Link to="/" style={styles.link} onClick={() => setMobileMenu(false)}>Inicio</Link>
+          <Link to="/carrito" style={styles.link} onClick={() => setMobileMenu(false)}>Carrito</Link>
+          <Link to="/about" style={styles.link} onClick={() => setMobileMenu(false)}>Nosotros</Link>
         </nav>
 
         {/* ACCIONES */}
-        <div style={styles.actions}>
+        <div style={{...styles.actions, display: mobileMenu ? "flex" : "flex"}}>
           <div style={styles.cart} onClick={() => navigate("/carrito")}>
             <FaShoppingBag size={24} />
             {totalProductos > 0 && (
@@ -112,7 +118,7 @@ const styles = {
     top: 0,
     width: "100%",
     backdropFilter: "blur(12px)",
-    background: "rgba(15,15,15,0.7)",
+    background: "rgba(15,15,15,0.85)",
     color: "white",
     zIndex: 100,
     boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
@@ -123,14 +129,15 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "12px 25px",
+    flexWrap: "wrap",
+    padding: "12px 20px",
+    gap: "12px",
   },
   logo: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
     cursor: "pointer",
-    transition: "transform 0.2s ease",
   },
   logoText: {
     fontFamily: "'Poppins', sans-serif",
@@ -140,9 +147,19 @@ const styles = {
     WebkitBackgroundClip: "text",
     color: "transparent",
   },
+  hamburger: {
+    display: "block",
+    cursor: "pointer",
+  },
   navLinks: {
     display: "flex",
-    gap: "25px",
+    flexDirection: "column",
+    gap: "12px",
+    width: "100%",
+    textAlign: "center",
+    background: "#1f1f1f",
+    padding: "10px 0",
+    borderRadius: "8px",
   },
   link: {
     textDecoration: "none",
@@ -154,12 +171,8 @@ const styles = {
   actions: {
     display: "flex",
     alignItems: "center",
-    gap: "20px",
-  },
-  userIcon: {
-    cursor: "pointer",
-    color: "#ffb347",
-    transition: "transform 0.2s ease",
+    gap: "15px",
+    flexWrap: "wrap",
   },
   cart: {
     position: "relative",
@@ -179,6 +192,10 @@ const styles = {
     fontWeight: "bold",
     boxShadow: "0 0 6px rgba(255, 92, 141, 0.8)",
   },
+  userIcon: {
+    cursor: "pointer",
+    color: "#ffb347",
+  },
   dropdown: {
     position: "absolute",
     right: 0,
@@ -186,7 +203,7 @@ const styles = {
     backgroundColor: "#1f1f1f",
     borderRadius: "10px",
     padding: "15px",
-    minWidth: "210px",
+    minWidth: "200px",
     boxShadow: "0 8px 20px rgba(0,0,0,0.5)",
     textAlign: "center",
     animation: "fadeIn 0.25s ease-out",
@@ -205,7 +222,6 @@ const styles = {
     width: "100%",
     fontWeight: "bold",
     cursor: "pointer",
-    transition: "0.3s",
   },
   logoutBtn: {
     background: "#ff4040",
@@ -230,13 +246,3 @@ const styles = {
     marginBottom: "6px",
   },
 };
-
-// Animación simple
-const styleSheet = document.createElement("style");
-styleSheet.textContent = `
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-`;
-document.head.appendChild(styleSheet);

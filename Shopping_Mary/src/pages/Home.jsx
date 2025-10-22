@@ -142,17 +142,18 @@ export default function Home({ carrito, setCarrito }) {
 // === ESTILOS ===
 const styles = {
   container: {
-    padding: "30px",
-    maxWidth: "1300px",
+    padding: "20px 10px",
+    maxWidth: "1200px",
     margin: "0 auto",
     fontFamily: "'Poppins', sans-serif",
     background: "linear-gradient(180deg, #121212 0%, #1a1a1a 100%)",
     minHeight: "100vh",
+    boxSizing: "border-box",
   },
   titulo: {
     color: "#ff5c8d",
     textAlign: "center",
-    marginBottom: "30px",
+    marginBottom: "20px",
     fontSize: "2rem",
     letterSpacing: "1px",
     textShadow: "0 2px 10px rgba(255,92,141,0.5)",
@@ -162,25 +163,28 @@ const styles = {
     padding: "12px 15px",
     borderRadius: "12px",
     border: "1px solid rgba(255,255,255,0.2)",
-    marginBottom: "25px",
+    marginBottom: "20px",
     fontSize: "1rem",
     backgroundColor: "rgba(30,30,30,0.6)",
     color: "white",
     outline: "none",
     transition: "0.3s",
+    boxSizing: "border-box",
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-    gap: "25px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", // flexible para móviles
+    gap: "15px",
+    width: "100%",
+    boxSizing: "border-box",
   },
   card: {
     background: "rgba(255,255,255,0.05)",
     backdropFilter: "blur(10px)",
-    borderRadius: "20px",
+    borderRadius: "15px",
     border: "1px solid rgba(255,255,255,0.1)",
-    padding: "18px",
-    boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+    padding: "15px",
+    boxShadow: "0 5px 20px rgba(0,0,0,0.4)",
     textAlign: "center",
     color: "white",
     transition: "transform 0.3s, box-shadow 0.3s",
@@ -188,64 +192,51 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
+    maxWidth: "100%", // evita desbordes
+    boxSizing: "border-box",
   },
   imagen: {
     width: "100%",
-    height: "auto", // altura automática
-    maxHeight: "250px", // límite máximo
-    objectFit: "contain", // mantiene proporción
-    borderRadius: "15px",
-    marginBottom: "12px",
-    transition: "transform 0.4s, box-shadow 0.4s",
+    height: "auto",
+    maxHeight: "200px",
+    objectFit: "contain",
+    borderRadius: "12px",
+    marginBottom: "10px",
+    transition: "transform 0.3s, box-shadow 0.3s",
   },
   imgPlaceholder: {
     width: "100%",
     minHeight: "150px",
-    borderRadius: "15px",
+    borderRadius: "12px",
     backgroundColor: "#1c1c1c",
     color: "#aaa",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
   },
-  nombre: {
-    fontSize: "1.2rem",
-    fontWeight: "700",
-    marginBottom: "5px",
-    color: "#ffb347",
-  },
-  precio: {
-    fontSize: "1.1rem",
-    fontWeight: "bold",
-    color: "#ff5c8d",
-    marginBottom: "8px",
-  },
-  descripcion: {
-    fontSize: "0.9rem",
-    color: "#ccc",
-    minHeight: "40px",
-    marginBottom: "10px",
-  },
-  cantidad: {
-    fontSize: "0.85rem",
-    marginBottom: "10px",
-    color: "#aaa",
-  },
+  nombre: { fontSize: "1.1rem", fontWeight: "700", color: "#ffb347", marginBottom: "5px" },
+  precio: { fontSize: "1rem", fontWeight: "bold", color: "#ff5c8d", marginBottom: "5px" },
+  descripcion: { fontSize: "0.85rem", color: "#ccc", minHeight: "30px", marginBottom: "8px" },
+  cantidad: { fontSize: "0.8rem", marginBottom: "8px", color: "#aaa" },
   boton: {
-    padding: "10px",
-    borderRadius: "12px",
+    padding: "8px",
+    borderRadius: "10px",
     border: "none",
-    background: "linear-gradient(90deg, #ff5c8d, #ffb347)",
+    background: "linear-gradient(90deg,#ff5c8d,#ffb347)",
     color: "white",
     fontWeight: "bold",
     cursor: "pointer",
     transition: "all 0.3s",
   },
-  loading: {
-    textAlign: "center",
-    marginTop: "100px",
-    color: "#ff5c8d",
-    fontSize: "1.5rem",
-    fontWeight: "bold",
-  },
+  loading: { textAlign: "center", marginTop: "80px", color: "#ff5c8d", fontSize: "1.3rem", fontWeight: "bold" },
 };
+
+// MEDIA QUERY INLINE para mobile (opcional si quieres aún más control)
+const mobileStyles = `
+@media (max-width: 500px) {
+  .productImage { max-height: 150px; }
+  .card { padding: 10px; border-radius: 12px; }
+  input { font-size: 0.9rem; }
+  h2 { font-size: 1.6rem; }
+}
+`;
