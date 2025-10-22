@@ -7,7 +7,7 @@ export default function Header({ carrito }) {
   const [user, setUser] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation(); // <-- Detecta la ruta actual
+  const location = useLocation();
 
   const ADMIN_EMAIL = "claudiomonsalve1287@gmail.com";
   const totalProductos = carrito.reduce((acc, p) => acc + (p.cantidad || 0), 0);
@@ -41,32 +41,40 @@ export default function Header({ carrito }) {
 
   const handleLogoClick = () => {
     if (location.pathname === "/") {
-      window.location.reload(); // Si ya estamos en home, recarga
+      window.location.reload();
     } else {
-      navigate("/"); // Si no, navega al home
+      navigate("/");
     }
   };
 
   return (
     <header style={styles.header}>
       <div style={styles.navContainer}>
-        {/* Logo NovaShop */}
+        {/* === IZQUIERDA === */}
         <div style={styles.logo} onClick={handleLogoClick}>
           <h1 style={styles.logoText}>NovaShop</h1>
         </div>
 
-        {/* Logo para Sobre Nosotros */}
-        <div style={styles.logo} onClick={() => navigate("/about")}>
-          <FaInfoCircle size={28} color="#ff5c8d" />
-        </div>
+        {/* === DERECHA === */}
+        <div style={styles.rightSection}>
+          {/* Sobre Nosotros */}
+          <FaInfoCircle
+            size={25}
+            color="#ffb347"
+            style={styles.icon}
+            onClick={() => navigate("/about")}
+            title="Sobre Nosotros"
+          />
 
-        {/* Acciones */}
-        <div style={styles.actions}>
+          {/* Carrito */}
           <div style={styles.cart} onClick={() => navigate("/carrito")}>
             <FaShoppingBag size={24} />
-            {totalProductos > 0 && <span style={styles.badge}>{totalProductos}</span>}
+            {totalProductos > 0 && (
+              <span style={styles.badge}>{totalProductos}</span>
+            )}
           </div>
 
+          {/* Usuario */}
           <div style={{ position: "relative" }}>
             <FaUserCircle
               size={28}
@@ -122,38 +130,38 @@ const styles = {
     boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
   },
   navContainer: {
-    maxWidth: "1200px",
+    maxWidth: "1400px",
     margin: "0 auto",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap",
-    padding: "12px 20px",
-    gap: "12px",
+    padding: "12px 30px",
   },
   logo: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
     cursor: "pointer",
+    marginRight: "auto", // 👈 empuja todo a la derecha
   },
   logoText: {
     fontFamily: "'Poppins', sans-serif",
-    fontWeight: "600",
-    fontSize: "1.4rem",
+    fontWeight: "700",
+    fontSize: "1.6rem",
     background: "linear-gradient(90deg, #ff5c8d, #ffb347)",
     WebkitBackgroundClip: "text",
     color: "transparent",
+    margin: 0,
   },
-  actions: {
+  rightSection: {
     display: "flex",
     alignItems: "center",
-    gap: "15px",
+    gap: "24px",
+  },
+  icon: {
+    cursor: "pointer",
+    transition: "transform 0.2s ease",
   },
   cart: {
     position: "relative",
     cursor: "pointer",
-    fontSize: "1.5rem",
     color: "#fff",
   },
   badge: {
@@ -171,6 +179,7 @@ const styles = {
   userIcon: {
     cursor: "pointer",
     color: "#ffb347",
+    transition: "transform 0.2s ease",
   },
   dropdown: {
     position: "absolute",
@@ -179,7 +188,7 @@ const styles = {
     backgroundColor: "#1f1f1f",
     borderRadius: "10px",
     padding: "15px",
-    minWidth: "200px",
+    minWidth: "210px",
     boxShadow: "0 8px 20px rgba(0,0,0,0.5)",
     textAlign: "center",
     animation: "fadeIn 0.25s ease-out",
@@ -223,3 +232,12 @@ const styles = {
   },
 };
 
+// Animación
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+`;
+document.head.appendChild(styleSheet);
