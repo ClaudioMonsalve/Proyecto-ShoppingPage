@@ -6,7 +6,6 @@ export default function Home({ carrito, setCarrito }) {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
 
-  // Convierte bytea (hex con \x) a Base64
   const byteaToBase64 = (bytea) => {
     if (!bytea) return null;
     const hex = bytea.startsWith("\\x") ? bytea.slice(2) : bytea;
@@ -20,7 +19,6 @@ export default function Home({ carrito, setCarrito }) {
   useEffect(() => {
     const fetchProductos = async () => {
       setLoading(true);
-
       const { data, error } = await supabase
         .from("productos")
         .select("*")
@@ -35,7 +33,6 @@ export default function Home({ carrito, setCarrito }) {
       setProductos(data);
       setLoading(false);
     };
-
     fetchProductos();
   }, []);
 
@@ -57,46 +54,21 @@ export default function Home({ carrito, setCarrito }) {
   );
 
   if (loading)
-    return (
-      <p style={{ color: "white", textAlign: "center" }}>
-        Cargando productos...
-      </p>
-    );
+    return <p style={styles.loading}>Cargando productos...</p>;
 
   return (
-    <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
-      <h2
-        style={{
-          color: "white",
-          marginBottom: "20px",
-          textAlign: "center",
-        }}
-      >
-        🛍️ Productos
-      </h2>
+    <div style={styles.container}>
+      <h2 style={styles.titulo}>✨ Catálogo de Productos ✨</h2>
 
       <input
         type="text"
-        placeholder="Buscar productos..."
+        placeholder="🔍 Buscar productos..."
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
-        style={{
-          width: "100%",
-          padding: "10px",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          marginBottom: "20px",
-          fontSize: "1rem",
-        }}
+        style={styles.inputBusqueda}
       />
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "20px",
-        }}
-      >
+      <div style={styles.grid}>
         {productosFiltrados.map((producto) => {
           const productoEnCarrito = carrito.find((p) => p.id === producto.id);
           const cantidad = productoEnCarrito ? productoEnCarrito.cantidad : 0;
@@ -104,88 +76,176 @@ export default function Home({ carrito, setCarrito }) {
           const imagenBase64 = byteaToBase64(producto.imagen);
 
           return (
-            <div key={producto.id} style={cardStyle}>
+            <div
+              key={producto.id}
+              style={styles.card}
+              onMouseEnter={(e) =>
+                e.currentTarget.querySelector("img")?.classList.add("hoverImg")
+              }
+              onMouseLeave={(e) =>
+                e.currentTarget.querySelector("img")?.classList.remove("hoverImg")
+              }
+            >
               {imagenBase64 ? (
                 <img
                   src={`data:image/png;base64,${imagenBase64}`}
                   alt={producto.nombre}
-                  style={imgStyle}
+                  style={styles.imagen}
+                  className="productImage"
                 />
               ) : (
-                <div style={imgPlaceholderStyle}>Sin imagen</div>
+                <div style={styles.imgPlaceholder}>Sin imagen</div>
               )}
 
-              <h3 style={titleStyle}>{producto.nombre}</h3>
-
-              <p style={priceStyle}>${producto.precio.toFixed(2)}</p>
-
+              <h3 style={styles.nombre}>{producto.nombre}</h3>
+              <p style={styles.precio}>${producto.precio.toFixed(2)}</p>
               {producto.descripcion && (
-                <p style={descStyle}>{producto.descripcion}</p>
+                <p style={styles.descripcion}>{producto.descripcion}</p>
               )}
-
-              <p style={{ margin: "5px 0", fontSize: "0.9rem" }}>
-                En carrito: {cantidad}
-              </p>
-
+              <p style={styles.cantidad}>🛒 En carrito: {cantidad}</p>
               <button
                 onClick={() => agregarAlCarrito(producto)}
-                style={buttonStyle}
+                style={styles.boton}
+                onMouseEnter={(e) =>
+                  e.currentTarget.classList.add("hoverBtn")
+                }
+                onMouseLeave={(e) =>
+                  e.currentTarget.classList.remove("hoverBtn")
+                }
               >
-                Agregar al carrito
+                ➕ Agregar al carrito
               </button>
             </div>
           );
         })}
       </div>
+
+      {/* CSS para animaciones */}
+      <style>
+        {`
+          .hoverImg {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(255,92,141,0.5);
+            transition: all 0.4s ease;
+          }
+          .hoverBtn {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(255,92,141,0.5);
+            transition: all 0.3s ease;
+          }
+        `}
+      </style>
     </div>
   );
 }
 
-// Estilos
-const cardStyle = {
-  backgroundColor: "#1f1f1f",
-  color: "#fff",
-  padding: "15px",
-  borderRadius: "10px",
-  textAlign: "center",
-  boxShadow: "0 3px 10px rgba(0,0,0,0.2)",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-};
-
-const imgStyle = {
-  width: "100%",
-  height: "150px",
-  objectFit: "contain",
-  borderRadius: 8,
-  backgroundColor: "#111",
-};
-
-const imgPlaceholderStyle = {
-  width: "100%",
-  height: "150px",
-  borderRadius: 8,
-  backgroundColor: "#333",
-  color: "#aaa",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "0.9rem",
-};
-
-const titleStyle = { margin: "10px 0 5px 0", color: "#fff" };
-const priceStyle = { margin: "5px 0", fontWeight: "bold", color: "#ff8c00" };
-const descStyle = { fontSize: "0.9rem", color: "#ccc", minHeight: "40px" };
-
-const buttonStyle = {
-  marginTop: "10px",
-  padding: "10px",
-  backgroundColor: "#242424",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
-  transition: "0.2s",
+// === ESTILOS ===
+const styles = {
+  container: {
+    padding: "30px",
+    maxWidth: "1300px",
+    margin: "0 auto",
+    fontFamily: "'Poppins', sans-serif",
+    background: "linear-gradient(180deg, #121212 0%, #1a1a1a 100%)",
+    minHeight: "100vh",
+  },
+  titulo: {
+    color: "#ff5c8d",
+    textAlign: "center",
+    marginBottom: "30px",
+    fontSize: "2rem",
+    letterSpacing: "1px",
+    textShadow: "0 2px 10px rgba(255,92,141,0.5)",
+  },
+  inputBusqueda: {
+    width: "100%",
+    padding: "12px 15px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.2)",
+    marginBottom: "25px",
+    fontSize: "1rem",
+    backgroundColor: "rgba(30,30,30,0.6)",
+    color: "white",
+    outline: "none",
+    transition: "0.3s",
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+    gap: "25px",
+  },
+  card: {
+    background: "rgba(255,255,255,0.05)",
+    backdropFilter: "blur(10px)",
+    borderRadius: "20px",
+    border: "1px solid rgba(255,255,255,0.1)",
+    padding: "18px",
+    boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+    textAlign: "center",
+    color: "white",
+    transition: "transform 0.3s, box-shadow 0.3s",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+  },
+  imagen: {
+    width: "100%",
+    height: "auto", // altura automática
+    maxHeight: "250px", // límite máximo
+    objectFit: "contain", // mantiene proporción
+    borderRadius: "15px",
+    marginBottom: "12px",
+    transition: "transform 0.4s, box-shadow 0.4s",
+  },
+  imgPlaceholder: {
+    width: "100%",
+    minHeight: "150px",
+    borderRadius: "15px",
+    backgroundColor: "#1c1c1c",
+    color: "#aaa",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  nombre: {
+    fontSize: "1.2rem",
+    fontWeight: "700",
+    marginBottom: "5px",
+    color: "#ffb347",
+  },
+  precio: {
+    fontSize: "1.1rem",
+    fontWeight: "bold",
+    color: "#ff5c8d",
+    marginBottom: "8px",
+  },
+  descripcion: {
+    fontSize: "0.9rem",
+    color: "#ccc",
+    minHeight: "40px",
+    marginBottom: "10px",
+  },
+  cantidad: {
+    fontSize: "0.85rem",
+    marginBottom: "10px",
+    color: "#aaa",
+  },
+  boton: {
+    padding: "10px",
+    borderRadius: "12px",
+    border: "none",
+    background: "linear-gradient(90deg, #ff5c8d, #ffb347)",
+    color: "white",
+    fontWeight: "bold",
+    cursor: "pointer",
+    transition: "all 0.3s",
+  },
+  loading: {
+    textAlign: "center",
+    marginTop: "100px",
+    color: "#ff5c8d",
+    fontSize: "1.5rem",
+    fontWeight: "bold",
+  },
 };
