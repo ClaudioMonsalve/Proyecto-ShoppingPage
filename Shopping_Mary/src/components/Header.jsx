@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
-import { Link, useNavigate } from "react-router-dom";
-import { FaShoppingBag, FaUserCircle, FaStoreAlt, FaBars, FaTimes } from "react-icons/fa";
+import { useNavigate, useLocation } from "react-router-dom";
+import { FaShoppingBag, FaUserCircle, FaInfoCircle } from "react-icons/fa";
 
 export default function Header({ carrito }) {
   const [user, setUser] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // <-- Detecta la ruta actual
 
   const ADMIN_EMAIL = "claudiomonsalve1287@gmail.com";
   const totalProductos = carrito.reduce((acc, p) => acc + (p.cantidad || 0), 0);
@@ -39,34 +39,32 @@ export default function Header({ carrito }) {
     setShowMenu(false);
   };
 
+  const handleLogoClick = () => {
+    if (location.pathname === "/") {
+      window.location.reload(); // Si ya estamos en home, recarga
+    } else {
+      navigate("/"); // Si no, navega al home
+    }
+  };
+
   return (
     <header style={styles.header}>
       <div style={styles.navContainer}>
-        {/* LOGO */}
-        <div style={styles.logo} onClick={() => navigate("/")}>
-          <FaStoreAlt size={28} color="#ff5c8d" />
+        {/* Logo NovaShop */}
+        <div style={styles.logo} onClick={handleLogoClick}>
           <h1 style={styles.logoText}>NovaShop</h1>
         </div>
 
-        {/* HAMBURGER ICON */}
-        <div style={styles.hamburger} onClick={() => setMobileMenu(!mobileMenu)}>
-          {mobileMenu ? <FaTimes size={28} color="#fff" /> : <FaBars size={28} color="#fff" />}
+        {/* Logo para Sobre Nosotros */}
+        <div style={styles.logo} onClick={() => navigate("/about")}>
+          <FaInfoCircle size={28} color="#ff5c8d" />
         </div>
 
-        {/* LINKS */}
-        <nav style={{...styles.navLinks, display: mobileMenu ? "flex" : "none"}}>
-          <Link to="/" style={styles.link} onClick={() => setMobileMenu(false)}>Inicio</Link>
-          <Link to="/carrito" style={styles.link} onClick={() => setMobileMenu(false)}>Carrito</Link>
-          <Link to="/about" style={styles.link} onClick={() => setMobileMenu(false)}>Nosotros</Link>
-        </nav>
-
-        {/* ACCIONES */}
-        <div style={{...styles.actions, display: mobileMenu ? "flex" : "flex"}}>
+        {/* Acciones */}
+        <div style={styles.actions}>
           <div style={styles.cart} onClick={() => navigate("/carrito")}>
             <FaShoppingBag size={24} />
-            {totalProductos > 0 && (
-              <span style={styles.badge}>{totalProductos}</span>
-            )}
+            {totalProductos > 0 && <span style={styles.badge}>{totalProductos}</span>}
           </div>
 
           <div style={{ position: "relative" }}>
@@ -136,7 +134,7 @@ const styles = {
   logo: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "8px",
     cursor: "pointer",
   },
   logoText: {
@@ -147,32 +145,10 @@ const styles = {
     WebkitBackgroundClip: "text",
     color: "transparent",
   },
-  hamburger: {
-    display: "block",
-    cursor: "pointer",
-  },
-  navLinks: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    width: "100%",
-    textAlign: "center",
-    background: "#1f1f1f",
-    padding: "10px 0",
-    borderRadius: "8px",
-  },
-  link: {
-    textDecoration: "none",
-    color: "#f2f2f2",
-    fontSize: "1rem",
-    fontWeight: "500",
-    transition: "color 0.3s",
-  },
   actions: {
     display: "flex",
     alignItems: "center",
     gap: "15px",
-    flexWrap: "wrap",
   },
   cart: {
     position: "relative",
@@ -246,3 +222,4 @@ const styles = {
     marginBottom: "6px",
   },
 };
+
