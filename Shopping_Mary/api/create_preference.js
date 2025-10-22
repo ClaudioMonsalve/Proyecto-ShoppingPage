@@ -23,9 +23,9 @@ export default async function handler(req, res) {
         quantity: Number(item.cantidad) >= 1 ? Number(item.cantidad) : 1,
       })),
       back_urls: {
-        success: "https://tu-proyecto.vercel.app/",
-        failure: "https://tu-proyecto.vercel.app/",
-        pending: "https://tu-proyecto.vercel.app/",
+        success: "https://proyecto-shopping-page.vercel.app/",
+        failure: "https://proyecto-shopping-page.vercel.app/",
+        pending: "https://proyecto-shopping-page.vercel.app/",
       },
       auto_return: "approved",
     };
