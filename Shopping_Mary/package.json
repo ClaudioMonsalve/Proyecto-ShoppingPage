@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "lucide-react": "^0.545.0",
+    "matplotlib": "^1.0.0",
     "mercadopago": "^2.9.0",
     "micro": "^10.0.1",
     "node-fetch": "^3.3.2",
