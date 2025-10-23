@@ -1,14 +1,11 @@
-// src/pages/Success.jsx
 import { useEffect, useState } from "react";
-import { HashRouter as Router, Routes, Route } from "react-router-dom";
-
+import { useLocation } from "react-router-dom";
 
 export default function Success() {
   const location = useLocation();
   const [params, setParams] = useState({});
 
   useEffect(() => {
-    // Extraer parámetros de la URL
     const query = new URLSearchParams(location.search);
     const payment_id = query.get("payment_id");
     const status = query.get("status");
@@ -32,4 +29,3 @@ export default function Success() {
     </div>
   );
 }
-
