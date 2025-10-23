@@ -7,6 +7,9 @@ export default function Carrito({ carrito, setCarrito }) {
     return saved ? JSON.parse(saved) : carrito;
   });
 
+  // Datos del invitado
+  const [invitado, setInvitado] = useState({ nombre: "", email: "" });
+
   // Convierte bytea (hex con \x) a Base64
   const byteaToBase64 = (bytea) => {
     if (!bytea) return null;
@@ -53,6 +56,9 @@ export default function Carrito({ carrito, setCarrito }) {
 
   const pagar = async () => {
     if (carritoLocal.length === 0) return alert("El carrito está vacío");
+    if (!invitado.nombre.trim() || !invitado.email.trim())
+      return alert("Debes ingresar nombre y email");
+
     setLoading(true);
 
     const items = carritoLocal.map((producto) => ({
@@ -65,7 +71,7 @@ export default function Carrito({ carrito, setCarrito }) {
       const res = await fetch("/api/create_preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ items, invitado }),
       });
 
       const data = await res.json();
@@ -147,9 +153,31 @@ export default function Carrito({ carrito, setCarrito }) {
         })}
       </div>
 
+      {/* Datos del invitado */}
+      <div style={{ marginTop: "20px", marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Nombre"
+          value={invitado.nombre}
+          onChange={(e) => setInvitado({ ...invitado, nombre: e.target.value })}
+          style={{ padding: "8px", marginRight: "10px" }}
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={invitado.email}
+          onChange={(e) => setInvitado({ ...invitado, email: e.target.value })}
+          style={{ padding: "8px" }}
+        />
+      </div>
+
       <div style={styles.totalContainer}>
         <h3>Total: ${total.toFixed(2)}</h3>
-        <button style={styles.pagarBtn} onClick={pagar} disabled={loading}>
+        <button
+          style={styles.pagarBtn}
+          onClick={pagar}
+          disabled={loading || !invitado.nombre.trim() || !invitado.email.trim()}
+        >
           {loading ? "Cargando..." : "Pagar"}
         </button>
       </div>
@@ -280,4 +308,3 @@ const styles = {
     fontSize: "1rem",
   },
 };
-
