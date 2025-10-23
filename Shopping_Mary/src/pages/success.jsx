@@ -1,6 +1,7 @@
 // src/pages/Success.jsx
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
+
 
 export default function Success() {
   const location = useLocation();
