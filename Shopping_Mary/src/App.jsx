@@ -33,7 +33,7 @@ function App() {
         <Route path="/carrito" element={<Carrito carrito={carrito} setCarrito={setCarrito} />} />
         <Route path="/perfil" element={<Perfil usuario={usuario} />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/success" element={<Success />} />
+        <Route path="/success" element={<Success />} /> {/* <-- ruta de éxito */}
       </Routes>
     </Router>
   );

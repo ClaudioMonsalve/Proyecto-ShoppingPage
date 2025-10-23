@@ -17,7 +17,7 @@ export default function Success() {
     if (payment_id && status) {
       setParams({ payment_id, status, preference_id });
 
-      // Guardar en tu base de datos (Supabase)
+      // Guardar en Supabase
       fetch("/api/save_order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,7 +28,7 @@ export default function Success() {
           console.log("Pedido guardado:", data);
           setSaved(true);
         })
-        .catch((err) => console.error("Error:", err));
+        .catch((err) => console.error("Error guardando pedido:", err));
     }
   }, [location.search]);
 
