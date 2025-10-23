@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import Carrito from "./pages/Carrito";
 import Perfil from "./pages/Perfil";
 import Admin from "./pages/Admin";
+import Success from "./pages/success";
 
 function App() {
   // Recupera carrito del localStorage al cargar
@@ -32,6 +33,7 @@ function App() {
         <Route path="/carrito" element={<Carrito carrito={carrito} setCarrito={setCarrito} />} />
         <Route path="/perfil" element={<Perfil usuario={usuario} />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/success" element={<Success />} />
       </Routes>
     </Router>
   );
