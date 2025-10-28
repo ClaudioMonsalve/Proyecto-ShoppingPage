@@ -123,8 +123,6 @@ export default function Carrito({ carrito, setCarrito }) {
     }
   };
 
-  };
-
   // ===============================
   //        🛍️ PROCESAR PAGO
   // ===============================
