@@ -1,5 +1,5 @@
-// ⚠️ Este objeto vive mientras la función serverless esté “caliente”
-let codes = {};
+// Reutiliza la misma memoria global
+global.codes = global.codes || {};
 
 export default function handler(req, res) {
   if (req.method !== "POST") {
@@ -9,13 +9,22 @@ export default function handler(req, res) {
   const { email, code } = req.body;
 
   if (!email || !code) {
-    return res.status(400).json({ success: false, error: "Faltan datos" });
+    return res.status(400).json({ error: "Faltan datos" });
   }
 
-  if (codes[email] && Number(code) === codes[email]) {
-    delete codes[email]; // evitar reutilizar el código
-    return res.status(200).json({ success: true });
-  } else {
+  const storedCode = global.codes[email];
+
+  if (!storedCode) {
+    return res.status(400).json({ success: false, error: "Código no encontrado (expirado o no enviado)" });
+  }
+
+  if (parseInt(code) !== storedCode) {
     return res.status(400).json({ success: false, error: "Código inválido" });
   }
+
+  // ✅ Código correcto → eliminarlo para que no se reutilice
+  delete global.codes[email];
+
+  console.log(`✅ Código correcto para ${email}`);
+  return res.status(200).json({ success: true });
 }
