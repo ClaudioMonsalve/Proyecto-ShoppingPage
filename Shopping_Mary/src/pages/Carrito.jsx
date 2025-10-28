@@ -8,7 +8,7 @@ export default function Carrito({ carrito, setCarrito }) {
     return saved ? JSON.parse(saved) : carrito;
   });
 
-  // ✨ Verificación Gmail
+  // ✨ Estados para el modal y verificación
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailStep, setEmailStep] = useState("email");
   const [email, setEmail] = useState(() => localStorage.getItem("email") || "");
@@ -38,7 +38,9 @@ export default function Carrito({ carrito, setCarrito }) {
   const reducirCantidad = (id) => {
     setCarritoLocal(
       carritoLocal.map((p) =>
-        p.id === id ? { ...p, cantidad: Math.max(1, p.cantidad - 1) } : p
+        p.id === id
+          ? { ...p, cantidad: p.cantidad > 1 ? p.cantidad - 1 : 1 }
+          : p
       )
     );
   };
@@ -72,9 +74,13 @@ export default function Carrito({ carrito, setCarrito }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+
       const data = await res.json();
-      if (data.success) setEmailStep("code");
-      else alert("❌ Error al enviar el código");
+      if (data.success) {
+        setEmailStep("code");
+      } else {
+        alert("❌ Error al enviar el código");
+      }
     } catch (err) {
       console.error(err);
       alert("❌ Error al conectar con el servidor");
@@ -100,7 +106,6 @@ export default function Carrito({ carrito, setCarrito }) {
 
       const data = await res.json();
       if (data.success) {
-        alert("✅ Código verificado correctamente");
         confirmarPago();
       } else {
         alert("❌ Código inválido");
@@ -113,31 +118,27 @@ export default function Carrito({ carrito, setCarrito }) {
   };
 
   // ===============================
-  //        🛍️ CREAR PEDIDO
+  //        🛍️ PROCESAR PAGO
   // ===============================
   const confirmarPago = async () => {
     setLoading(true);
-    const items = carritoLocal.map((producto) => ({
-      nombre: producto.nombre,
-      precio: producto.precio,
-      cantidad: producto.cantidad,
-    }));
-
     try {
-      // 🧾 1. Crear pedido en Supabase
-      const { data: pedidoData, error: pedidoError } = await supabase
+      // 1. Guardar pedido en Supabase
+      const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert([{ email, total, estado: "pendiente" }])
         .select("id")
         .single();
 
-      if (pedidoError) throw pedidoError;
+      if (pedidoError) {
+        console.error("❌ Error al guardar pedido:", pedidoError);
+        alert("❌ No se pudo crear el pedido.");
+        return;
+      }
 
-      const pedidoId = pedidoData.id;
-
-      // 🧺 2. Insertar detalle de productos
-      const detalle = carritoLocal.map((producto) => ({
-        pedido_id: pedidoId,
+      // 2. Guardar detalles del pedido
+      const detalles = carritoLocal.map((producto) => ({
+        pedido_id: pedido.id,
         producto_id: producto.id,
         cantidad: producto.cantidad,
         subtotal: producto.precio * producto.cantidad,
@@ -145,43 +146,27 @@ export default function Carrito({ carrito, setCarrito }) {
 
       const { error: detalleError } = await supabase
         .from("detalle_pedidos")
-        .insert(detalle);
+        .insert(detalles);
 
-      if (detalleError) throw detalleError;
-
-      // 💾 3. Guardar pedido_id para usarlo en Success.jsx
-      localStorage.setItem("pedido_id", pedidoId);
-
-      // 💳 4. Redirigir a MercadoPago
-      const res = await fetch("/api/create_preference", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
-      });
-
-      const data = await res.json();
-      if (data.init_point) {
-        setShowEmailModal(false);
-        window.location.href = data.init_point;
-      } else {
-        alert("❌ Error al generar la preferencia de pago");
+      if (detalleError) {
+        console.error("❌ Error al guardar detalles:", detalleError);
+        alert("❌ No se pudieron guardar los detalles.");
+        return;
       }
+
+      // 🧠 Guarda el ID para la página Success
+      localStorage.setItem("pedido_id", pedido.id);
+
+      // 3. Redirigir a success directamente
+      setShowEmailModal(false);
+      window.location.href = `/success`;
     } catch (err) {
-      console.error("❌ Error al procesar el pedido:", err);
-      alert("❌ Error al procesar el pedido");
+      console.error("❌ Error al procesar el pago:", err);
+      alert("❌ Error al procesar el pago");
     } finally {
       setLoading(false);
     }
   };
-
-  if (carritoLocal.length === 0) {
-    return (
-      <div style={styles.container}>
-        <h2 style={styles.titulo}>🛒 Carrito</h2>
-        <p style={styles.textoVacio}>Tu carrito está vacío</p>
-      </div>
-    );
-  }
 
   return (
     <div style={styles.container}>
@@ -208,6 +193,7 @@ export default function Carrito({ carrito, setCarrito }) {
               <div style={styles.info}>
                 <h3 style={styles.nombre}>{producto.nombre}</h3>
                 <p style={styles.precio}>${producto.precio.toFixed(2)}</p>
+
                 <div style={styles.cantidadContainer}>
                   <button
                     style={styles.cantidadBtn}
@@ -223,9 +209,11 @@ export default function Carrito({ carrito, setCarrito }) {
                     +
                   </button>
                 </div>
+
                 <p style={styles.subtotal}>
                   Subtotal: ${(producto.precio * producto.cantidad).toFixed(2)}
                 </p>
+
                 <button
                   style={styles.eliminarBtn}
                   onClick={() => eliminarProducto(producto.id)}
@@ -238,7 +226,6 @@ export default function Carrito({ carrito, setCarrito }) {
         })}
       </div>
 
-      {/* Total */}
       <div style={styles.totalContainer}>
         <h3>Total: ${total.toFixed(2)}</h3>
         <button style={styles.pagarBtn} onClick={pagar} disabled={loading}>
@@ -320,9 +307,6 @@ export default function Carrito({ carrito, setCarrito }) {
   );
 }
 
-// =========================================
-// Función auxiliar para convertir imagenes
-// =========================================
 const byteaToBase64 = (bytea) => {
   if (!bytea) return null;
   const hex = bytea.startsWith("\\x") ? bytea.slice(2) : bytea;
@@ -333,9 +317,6 @@ const byteaToBase64 = (bytea) => {
   return btoa(str);
 };
 
-// =========================================
-// Estilos CSS-in-JS
-// =========================================
 const styles = {
   container: { padding: "30px", maxWidth: "1200px", margin: "0 auto", minHeight: "100vh" },
   titulo: { color: "#ff5c8d", fontSize: "2rem", marginBottom: "20px", textAlign: "center" },
