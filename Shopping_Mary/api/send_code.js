@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 
-let codes = {};
+// 👇 Usamos la misma referencia global en ambos archivos
+global.codes = global.codes || {};
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   const code = Math.floor(100000 + Math.random() * 900000);
-  codes[email] = code;
+  global.codes[email] = code; // 👈 importante
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -28,9 +29,9 @@ export default async function handler(req, res) {
       subject: "Código de verificación",
       text: `Tu código de verificación es: ${code}`,
     });
+    console.log(`✅ Código ${code} enviado a ${email}`);
     res.json({ success: true });
   } catch (err) {
     console.error("❌ Error al enviar correo:", err);
-    res.status(500).json({ success: false });
-  }
-}
+    res.status(500).json({ suc
+
