@@ -15,26 +15,31 @@ export default function Success() {
     const payment_id = query.get("payment_id");
     const status = query.get("status");
 
-    if (!payment_id || status !== "approved") {
-      setError("Pago no aprobado o faltan datos");
+    // 🧩 Validar que los parámetros sean correctos
+    if (!payment_id || isNaN(Number(payment_id)) || status !== "approved") {
+      console.warn("Parámetros inválidos:", { payment_id, status });
+      setError("Pago no aprobado o faltan datos válidos");
       setLoading(false);
       return;
     }
 
     async function fetchPedido() {
       try {
-        // Traer info del pedido
+        console.log("Buscando pedido con ID:", payment_id);
+
+        // 🧾 Traer info del pedido (convertimos el ID a número)
         const { data: pedidoData, error: pedidoError } = await supabase
           .from("pedidos")
           .select("id, email, total, estado, created_at")
-          .eq("id", payment_id) // reemplaza si usas otro campo
+          .eq("id", Number(payment_id))
           .single();
 
         if (pedidoError) throw pedidoError;
+        if (!pedidoData) throw new Error("Pedido no encontrado");
 
         setPedido(pedidoData);
 
-        // Traer detalle y productos
+        // 🧺 Traer detalle del pedido y productos relacionados
         const { data: itemsData, error: itemsError } = await supabase
           .from("detalle_pedidos")
           .select(`
@@ -57,8 +62,8 @@ export default function Success() {
           }))
         );
       } catch (err) {
-        console.error(err);
-        setError("Error al cargar la información del pedido");
+        console.error("❌ Error cargando pedido:", err);
+        setError("Error al cargar la información del pedido.");
       } finally {
         setLoading(false);
       }
@@ -66,6 +71,7 @@ export default function Success() {
 
     fetchPedido();
   }, [location.search]);
+
 
   if (loading) return <p style={{ textAlign: "center" }}>Cargando pedido...</p>;
   if (error) return <p style={{ textAlign: "center", color: "red" }}>{error}</p>;
