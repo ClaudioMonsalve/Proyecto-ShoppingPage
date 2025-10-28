@@ -1,3 +1,5 @@
+
+// src/pages/Success.jsx
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
@@ -14,8 +16,8 @@ export default function Success() {
     const payment_id = query.get("payment_id");
     const status = query.get("status");
 
-    // ⚠️ Validación de parámetros
-    if (!payment_id || status !== "approved") {
+    // 🧩 Validar que los parámetros sean correctos
+    if (!payment_id || isNaN(Number(payment_id)) || status !== "approved") {
       console.warn("Parámetros inválidos:", { payment_id, status });
       setError("Pago no aprobado o faltan datos válidos");
       setLoading(false);
@@ -24,13 +26,13 @@ export default function Success() {
 
     async function fetchPedido() {
       try {
-        console.log("🔎 Buscando pedido con payment_id:", payment_id);
+        console.log("Buscando pedido con ID:", payment_id);
 
-        // 🧾 Buscar pedido por payment_id
+        // 🧾 Traer info del pedido (convertimos el ID a número)
         const { data: pedidoData, error: pedidoError } = await supabase
           .from("pedidos")
-          .select("id, email, total, estado, created_at, payment_id")
-          .eq("payment_id", payment_id)
+          .select("id, email, total, estado, created_at")
+          .eq("id", Number(payment_id))
           .single();
 
         if (pedidoError) throw pedidoError;
@@ -38,7 +40,7 @@ export default function Success() {
 
         setPedido(pedidoData);
 
-        // 🧺 Traer detalle del pedido + producto relacionado
+        // 🧺 Traer detalle del pedido y productos relacionados
         const { data: itemsData, error: itemsError } = await supabase
           .from("detalle_pedidos")
           .select(`
@@ -76,18 +78,17 @@ export default function Success() {
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>✅ Pago aprobado</h1>
-      <h2>Pedido ID interno: {pedido.id}</h2>
-      <p><strong>Payment ID (MercadoPago):</strong> {pedido.payment_id}</p>
-      <p><strong>Email:</strong> {pedido.email}</p>
-      <p><strong>Total:</strong> ${pedido.total}</p>
-      <p><strong>Estado:</strong> {pedido.estado}</p>
+      <h1>Pago aprobado ✅</h1>
+      <h2>Pedido ID: {pedido.id}</h2>
+      <p>Email: {pedido.email}</p>
+      <p>Total: ${pedido.total}</p>
+      <p>Estado: {pedido.estado}</p>
 
-      <h3>🧺 Detalle del pedido</h3>
+      <h3>Detalle:</h3>
       <ul style={{ listStyle: "none", padding: 0 }}>
         {items.map((item) => (
           <li key={item.id} style={{ marginBottom: "10px" }}>
-            {item.nombre} — {item.cantidad} × ${item.precio} = ${item.subtotal}
+            {item.nombre} - {item.cantidad} x ${item.precio} = ${item.subtotal}
           </li>
         ))}
       </ul>
