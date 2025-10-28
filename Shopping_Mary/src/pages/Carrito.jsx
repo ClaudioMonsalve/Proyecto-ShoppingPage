@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { supabase } from "../supabaseClient";
 
 export default function Carrito({ carrito, setCarrito }) {
   const [loading, setLoading] = useState(false);
@@ -7,13 +8,12 @@ export default function Carrito({ carrito, setCarrito }) {
     return saved ? JSON.parse(saved) : carrito;
   });
 
-  // ✨ Estados para el modal y verificación
+  // ✨ Verificación Gmail
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailStep, setEmailStep] = useState("email"); // "email" o "code"
+  const [emailStep, setEmailStep] = useState("email");
   const [email, setEmail] = useState(() => localStorage.getItem("email") || "");
   const [verificationCode, setVerificationCode] = useState("");
 
-  // Sincronizar carrito con localStorage
   useEffect(() => {
     setCarrito(carritoLocal);
     localStorage.setItem("carrito", JSON.stringify(carritoLocal));
@@ -23,7 +23,6 @@ export default function Carrito({ carrito, setCarrito }) {
     if (email) localStorage.setItem("email", email);
   }, [email]);
 
-  // 🧮 Funciones básicas del carrito
   const eliminarProducto = (id) => {
     setCarritoLocal(carritoLocal.filter((p) => p.id !== id));
   };
@@ -39,9 +38,7 @@ export default function Carrito({ carrito, setCarrito }) {
   const reducirCantidad = (id) => {
     setCarritoLocal(
       carritoLocal.map((p) =>
-        p.id === id
-          ? { ...p, cantidad: p.cantidad > 1 ? p.cantidad - 1 : 1 }
-          : p
+        p.id === id ? { ...p, cantidad: Math.max(1, p.cantidad - 1) } : p
       )
     );
   };
@@ -54,7 +51,6 @@ export default function Carrito({ carrito, setCarrito }) {
   // ===============================
   //     📨 VERIFICACIÓN DE EMAIL
   // ===============================
-
   const pagar = () => {
     if (carritoLocal.length === 0) {
       alert("El carrito está vacío");
@@ -76,13 +72,9 @@ export default function Carrito({ carrito, setCarrito }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
       const data = await res.json();
-      if (data.success) {
-        setEmailStep("code");
-      } else {
-        alert("❌ Error al enviar el código");
-      }
+      if (data.success) setEmailStep("code");
+      else alert("❌ Error al enviar el código");
     } catch (err) {
       console.error(err);
       alert("❌ Error al conectar con el servidor");
@@ -95,20 +87,17 @@ export default function Carrito({ carrito, setCarrito }) {
     try {
       setLoading(true);
       const res = await fetch("/api/verify_code", {
-        method: "POST",                               // ✅ OBLIGATORIO
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email,
-          code: verificationCode
-        }),
+        body: JSON.stringify({ email, code: verificationCode }),
       });
-  
+
       if (!res.ok) {
         console.error("❌ Error del servidor:", res.status);
         alert("❌ Error al verificar el código");
         return;
       }
-  
+
       const data = await res.json();
       if (data.success) {
         alert("✅ Código verificado correctamente");
@@ -124,7 +113,7 @@ export default function Carrito({ carrito, setCarrito }) {
   };
 
   // ===============================
-  //        🛍️ PROCESAR PAGO
+  //        🛍️ CREAR PEDIDO
   // ===============================
   const confirmarPago = async () => {
     setLoading(true);
@@ -135,6 +124,35 @@ export default function Carrito({ carrito, setCarrito }) {
     }));
 
     try {
+      // 🧾 1. Crear pedido en Supabase
+      const { data: pedidoData, error: pedidoError } = await supabase
+        .from("pedidos")
+        .insert([{ email, total, estado: "pendiente" }])
+        .select("id")
+        .single();
+
+      if (pedidoError) throw pedidoError;
+
+      const pedidoId = pedidoData.id;
+
+      // 🧺 2. Insertar detalle de productos
+      const detalle = carritoLocal.map((producto) => ({
+        pedido_id: pedidoId,
+        producto_id: producto.id,
+        cantidad: producto.cantidad,
+        subtotal: producto.precio * producto.cantidad,
+      }));
+
+      const { error: detalleError } = await supabase
+        .from("detalle_pedidos")
+        .insert(detalle);
+
+      if (detalleError) throw detalleError;
+
+      // 💾 3. Guardar pedido_id para usarlo en Success.jsx
+      localStorage.setItem("pedido_id", pedidoId);
+
+      // 💳 4. Redirigir a MercadoPago
       const res = await fetch("/api/create_preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -149,8 +167,8 @@ export default function Carrito({ carrito, setCarrito }) {
         alert("❌ Error al generar la preferencia de pago");
       }
     } catch (err) {
-      console.error("❌ Error al procesar el pago:", err);
-      alert("❌ Error al procesar el pago");
+      console.error("❌ Error al procesar el pedido:", err);
+      alert("❌ Error al procesar el pedido");
     } finally {
       setLoading(false);
     }
@@ -187,11 +205,9 @@ export default function Carrito({ carrito, setCarrito }) {
               ) : (
                 <div style={styles.imgPlaceholder}>Sin imagen</div>
               )}
-
               <div style={styles.info}>
                 <h3 style={styles.nombre}>{producto.nombre}</h3>
                 <p style={styles.precio}>${producto.precio.toFixed(2)}</p>
-
                 <div style={styles.cantidadContainer}>
                   <button
                     style={styles.cantidadBtn}
@@ -207,11 +223,9 @@ export default function Carrito({ carrito, setCarrito }) {
                     +
                   </button>
                 </div>
-
                 <p style={styles.subtotal}>
                   Subtotal: ${(producto.precio * producto.cantidad).toFixed(2)}
                 </p>
-
                 <button
                   style={styles.eliminarBtn}
                   onClick={() => eliminarProducto(producto.id)}
