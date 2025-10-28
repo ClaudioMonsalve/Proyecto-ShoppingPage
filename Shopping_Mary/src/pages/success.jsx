@@ -1,46 +1,34 @@
-
-// src/pages/Success.jsx
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
 export default function Success() {
-  const location = useLocation();
   const [pedido, setPedido] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const query = new URLSearchParams(location.search);
-    const payment_id = query.get("payment_id");
-    const status = query.get("status");
+    const pedido_id = localStorage.getItem("pedido_id");
 
-    // 🧩 Validar que los parámetros sean correctos
-    if (!payment_id || isNaN(Number(payment_id)) || status !== "approved") {
-      console.warn("Parámetros inválidos:", { payment_id, status });
-      setError("Pago no aprobado o faltan datos válidos");
+    if (!pedido_id) {
+      setError("No se encontró un pedido reciente.");
       setLoading(false);
       return;
     }
 
     async function fetchPedido() {
       try {
-        console.log("Buscando pedido con ID:", payment_id);
-
-        // 🧾 Traer info del pedido (convertimos el ID a número)
+        // Obtener pedido
         const { data: pedidoData, error: pedidoError } = await supabase
           .from("pedidos")
           .select("id, email, total, estado, created_at")
-          .eq("id", Number(payment_id))
+          .eq("id", Number(pedido_id))
           .single();
 
         if (pedidoError) throw pedidoError;
-        if (!pedidoData) throw new Error("Pedido no encontrado");
-
         setPedido(pedidoData);
 
-        // 🧺 Traer detalle del pedido y productos relacionados
+        // Obtener detalle
         const { data: itemsData, error: itemsError } = await supabase
           .from("detalle_pedidos")
           .select(`
@@ -49,7 +37,7 @@ export default function Success() {
             subtotal,
             producto:productos(nombre, precio)
           `)
-          .eq("pedido_id", pedidoData.id);
+          .eq("pedido_id", Number(pedido_id));
 
         if (itemsError) throw itemsError;
 
@@ -64,21 +52,21 @@ export default function Success() {
         );
       } catch (err) {
         console.error("❌ Error cargando pedido:", err);
-        setError("Error al cargar la información del pedido.");
+        setError("No se pudo cargar el pedido.");
       } finally {
         setLoading(false);
       }
     }
 
     fetchPedido();
-  }, [location.search]);
+  }, []);
 
   if (loading) return <p style={{ textAlign: "center" }}>Cargando pedido...</p>;
   if (error) return <p style={{ textAlign: "center", color: "red" }}>{error}</p>;
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>Pago aprobado ✅</h1>
+      <h1>✅ Pedido realizado</h1>
       <h2>Pedido ID: {pedido.id}</h2>
       <p>Email: {pedido.email}</p>
       <p>Total: ${pedido.total}</p>
@@ -95,3 +83,4 @@ export default function Success() {
     </div>
   );
 }
+
