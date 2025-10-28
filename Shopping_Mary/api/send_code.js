@@ -33,5 +33,7 @@ export default async function handler(req, res) {
     res.json({ success: true });
   } catch (err) {
     console.error("❌ Error al enviar correo:", err);
-    res.status(500).json({ suc
+    res.status(500).json({ success: false });
+  }
+}
 
