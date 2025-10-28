@@ -92,26 +92,37 @@ export default function Carrito({ carrito, setCarrito }) {
   };
 
   const verificarCodigo = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/verify_code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: verificationCode }),
-      });
+  try {
+    setLoading(true);
+    const res = await fetch("/api/verify_code", {
+      method: "POST",                               // ✅ OBLIGATORIO
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email,
+        code: verificationCode
+      }),
+    });
 
-      const data = await res.json();
-      if (data.success) {
-        confirmarPago();
-      } else {
-        alert("❌ Código incorrecto");
-      }
-    } catch (err) {
-      console.error(err);
+    if (!res.ok) {
+      console.error("❌ Error del servidor:", res.status);
       alert("❌ Error al verificar el código");
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    const data = await res.json();
+    if (data.success) {
+      alert("✅ Código verificado correctamente");
+      confirmarPago();
+    } else {
+      alert("❌ Código inválido");
+    }
+  } catch (err) {
+    console.error("❌ Error al verificar:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
   };
 
   // ===============================
