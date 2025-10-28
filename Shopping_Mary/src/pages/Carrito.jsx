@@ -8,7 +8,6 @@ export default function Carrito({ carrito, setCarrito }) {
     return saved ? JSON.parse(saved) : carrito;
   });
 
-  // ✨ Estados para el modal y verificación
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailStep, setEmailStep] = useState("email");
   const [email, setEmail] = useState(() => localStorage.getItem("email") || "");
@@ -118,7 +117,7 @@ export default function Carrito({ carrito, setCarrito }) {
   };
 
   // ===============================
-  //        🛍️ PROCESAR PAGO
+  //     💳 PROCESAR PAGO (MP)
   // ===============================
   const confirmarPago = async () => {
     setLoading(true);
@@ -136,7 +135,7 @@ export default function Carrito({ carrito, setCarrito }) {
         return;
       }
 
-      // 2. Guardar detalles del pedido
+      // 2. Guardar detalles
       const detalles = carritoLocal.map((producto) => ({
         pedido_id: pedido.id,
         producto_id: producto.id,
@@ -154,12 +153,30 @@ export default function Carrito({ carrito, setCarrito }) {
         return;
       }
 
-      // 🧠 Guarda el ID para la página Success
+      // 🧠 Guardar pedido_id en localStorage para Success.jsx
       localStorage.setItem("pedido_id", pedido.id);
 
-      // 3. Redirigir a success directamente
-      setShowEmailModal(false);
-      window.location.href = `/success`;
+      // 3. Crear preferencia de pago en Mercado Pago
+      const items = carritoLocal.map((producto) => ({
+        nombre: producto.nombre,
+        precio: producto.precio,
+        cantidad: producto.cantidad,
+      }));
+
+      const res = await fetch("/api/create_preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+
+      const data = await res.json();
+      if (data.init_point) {
+        setShowEmailModal(false);
+        // 👇 redirección al checkout de Mercado Pago
+        window.location.href = data.init_point;
+      } else {
+        alert("❌ Error al generar la preferencia de pago");
+      }
     } catch (err) {
       console.error("❌ Error al procesar el pago:", err);
       alert("❌ Error al procesar el pago");
@@ -172,7 +189,6 @@ export default function Carrito({ carrito, setCarrito }) {
     <div style={styles.container}>
       <h2 style={styles.titulo}>🛒 Carrito</h2>
 
-      {/* 🛍️ Lista de productos */}
       <div style={styles.grid}>
         {carritoLocal.map((producto) => {
           const imagenBase64 = producto.imagen
@@ -190,6 +206,7 @@ export default function Carrito({ carrito, setCarrito }) {
               ) : (
                 <div style={styles.imgPlaceholder}>Sin imagen</div>
               )}
+
               <div style={styles.info}>
                 <h3 style={styles.nombre}>{producto.nombre}</h3>
                 <p style={styles.precio}>${producto.precio.toFixed(2)}</p>
@@ -233,7 +250,7 @@ export default function Carrito({ carrito, setCarrito }) {
         </button>
       </div>
 
-      {/* ✨ Modal de verificación */}
+      {/* Modal de verificación */}
       {showEmailModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
