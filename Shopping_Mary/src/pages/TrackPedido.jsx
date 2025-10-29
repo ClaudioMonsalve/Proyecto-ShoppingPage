@@ -116,7 +116,7 @@ const styles = {
     marginBottom: "20px",
   },
   infoBox: {
-    background: "#f7f7f7",
+    background: "black",
     borderRadius: "10px",
     padding: "15px",
     textAlign: "left",
