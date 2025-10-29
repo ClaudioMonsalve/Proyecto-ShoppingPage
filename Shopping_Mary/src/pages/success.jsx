@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
-import crypto from "crypto";
 
 export default function Success({ setCarrito }) {
   const navigate = useNavigate();
@@ -44,8 +43,8 @@ export default function Success({ setCarrito }) {
           0
         );
 
-        // 🧾 Crear tracking token único
-        const tracking_token = crypto.randomBytes(32).toString("hex");
+        // 🧾 Crear tracking token único compatible con navegador
+        const tracking_token = self.crypto.randomUUID().replace(/-/g, "");
 
         // 📦 Guardar pedido principal
         const { data: pedido, error: pedidoError } = await supabase
@@ -120,5 +119,6 @@ export default function Success({ setCarrito }) {
 
   return null;
 }
+
 
 
