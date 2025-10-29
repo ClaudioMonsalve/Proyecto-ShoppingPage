@@ -7,7 +7,7 @@ import Carrito from "./pages/Carrito";
 import Perfil from "./pages/Perfil";
 import Admin from "./pages/Admin";
 import Success from "./pages/success";
-import TrackPedido from "./pages/track
+import TrackPedido from "./pages/track";
 
 function App() {
   const [carrito, setCarrito] = useState(() => {
