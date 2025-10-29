@@ -12,7 +12,6 @@ export default function Success() {
   useEffect(() => {
     const pedido_id = localStorage.getItem("pedido_id");
 
-    // ⚡ Si no hay pedido guardado → redirige al Home de inmediato
     if (!pedido_id) {
       setError("No se encontró un pedido reciente.");
       navigate("/");
@@ -21,7 +20,6 @@ export default function Success() {
 
     async function fetchPedido() {
       try {
-        // 📦 Obtener datos del pedido
         const { data: pedidoData, error: pedidoError } = await supabase
           .from("pedidos")
           .select("id, email, total, estado, created_at")
@@ -31,7 +29,6 @@ export default function Success() {
         if (pedidoError) throw pedidoError;
         setPedido(pedidoData);
 
-        // 🧾 Obtener los ítems relacionados con el pedido
         const { data: itemsData, error: itemsError } = await supabase
           .from("detalle_pedidos")
           .select(`
@@ -54,12 +51,14 @@ export default function Success() {
           }))
         );
 
-        // 🏠 Redirige inmediatamente al Home cuando todo carga bien
+        // 🧹 ✅ Vaciar carrito solo si la compra fue exitosa
+        localStorage.removeItem("carrito");
+
+        // 🏠 Redirige inmediatamente al home si quieres
         navigate("/");
       } catch (err) {
         console.error("❌ Error cargando pedido:", err);
         setError("No se pudo cargar el pedido.");
-        // ⚡ Redirige aunque haya error
         navigate("/");
       } finally {
         setLoading(false);
@@ -69,6 +68,6 @@ export default function Success() {
     fetchPedido();
   }, [navigate]);
 
-  // 🕒 Como redirige al instante, no mostramos nada visualmente
-  return null;
+  return null; // Ya no mostramos nada porque redirige
 }
+
