@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
-export default function Success() {
+export default function Success({ setCarrito }) {
   const [pedido, setPedido] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,10 +51,11 @@ export default function Success() {
           }))
         );
 
-        // 🧹 ✅ Vaciar carrito solo si la compra fue exitosa
+        // 🧹 Vaciar carrito global + localStorage
+        setCarrito([]);
         localStorage.removeItem("carrito");
 
-        // 🏠 Redirige inmediatamente al home si quieres
+        // 🏠 Redirigir
         navigate("/");
       } catch (err) {
         console.error("❌ Error cargando pedido:", err);
@@ -66,8 +67,8 @@ export default function Success() {
     }
 
     fetchPedido();
-  }, [navigate]);
+  }, [navigate, setCarrito]);
 
-  return null; // Ya no mostramos nada porque redirige
+  return null;
 }
 
