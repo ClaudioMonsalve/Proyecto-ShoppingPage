@@ -31,12 +31,12 @@ export default function Success() {
         // Obtener detalle
         const { data: itemsData, error: itemsError } = await supabase
           .from("detalle_pedidos")
-          .select(
+          .select(`
             id,
             cantidad,
             subtotal,
             producto:productos(nombre, precio)
-          )
+          `)
           .eq("pedido_id", Number(pedido_id));
 
         if (itemsError) throw itemsError;
@@ -83,4 +83,3 @@ export default function Success() {
     </div>
   );
 }
-
