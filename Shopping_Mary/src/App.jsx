@@ -29,7 +29,7 @@ function App() {
         <Route path="/carrito" element={<Carrito carrito={carrito} setCarrito={setCarrito} />} />
         <Route path="/perfil" element={<Perfil usuario={usuario} />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/success" element={<Success />} /> {/* Ruta de éxito */}
+        <Route path="/success" element={<Success setCarrito={setCarrito} />} />
       </Routes>
     </Router>
   );
