@@ -7,15 +7,17 @@ export default function Carrito({ carrito, setCarrito }) {
     return saved ? JSON.parse(saved) : carrito;
   });
 
-  // ✨ Estados para el modal de datos del cliente
+  // ✨ Estados del modal y verificación
   const [showModal, setShowModal] = useState(false);
+  const [step, setStep] = useState("form"); // form | code
   const [email, setEmail] = useState(localStorage.getItem("email") || "");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [region, setRegion] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
 
-  // Sincronizar carrito con localStorage
+  // sincronizar carrito
   useEffect(() => {
     setCarrito(carritoLocal);
     localStorage.setItem("carrito", JSON.stringify(carritoLocal));
@@ -25,7 +27,7 @@ export default function Carrito({ carrito, setCarrito }) {
     if (email) localStorage.setItem("email", email);
   }, [email]);
 
-  // 🧮 Funciones básicas del carrito
+  // 🧮 funciones básicas
   const eliminarProducto = (id) =>
     setCarritoLocal(carritoLocal.filter((p) => p.id !== id));
 
@@ -50,20 +52,81 @@ export default function Carrito({ carrito, setCarrito }) {
     0
   );
 
-  // ===============================
-  //   🧾 PROCESO DE PAGO COMPLETO
-  // ===============================
+  // ============================
+  //    🧾 VERIFICACIÓN EMAIL
+  // ============================
   const pagar = () => {
-    if (carritoLocal.length === 0) return alert("El carrito está vacío");
+    if (carritoLocal.length === 0) {
+      alert("El carrito está vacío");
+      return;
+    }
     setShowModal(true);
   };
 
-  const confirmarPago = async () => {
-    if (!email || !telefono || !direccion || !ciudad || !region) {
-      alert("⚠️ Completa todos los campos antes de continuar.");
+  const enviarCodigo = async () => {
+    if (
+      !email ||
+      !telefono ||
+      !direccion ||
+      !ciudad ||
+      !region ||
+      !/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email)
+    ) {
+      alert("⚠️ Completa todos los campos y usa un Gmail válido.");
       return;
     }
 
+    try {
+      setLoading(true);
+      const res = await fetch("/api/send_code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("📩 Código enviado a tu Gmail");
+        setStep("code");
+      } else {
+        alert("❌ Error al enviar el código");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error al conectar con el servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verificarCodigo = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/verify_code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: verificationCode }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("✅ Verificación exitosa");
+        confirmarPago(); // pasa al pago
+      } else {
+        alert("❌ Código inválido");
+      }
+    } catch (err) {
+      console.error("Error al verificar código:", err);
+      alert("❌ Error al verificar el código");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================
+  //       💳 CREAR PAGO
+  // ============================
+  const confirmarPago = async () => {
     setLoading(true);
 
     const datosCliente = { email, telefono, direccion, ciudad, region };
@@ -78,18 +141,14 @@ export default function Carrito({ carrito, setCarrito }) {
       const res = await fetch("/api/create_preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, datosCliente }),
+        body: JSON.stringify({ email, items, ...datosCliente }),
       });
 
       const data = await res.json();
-
       if (data.init_point) {
-        // ✅ Limpiar carrito y cerrar modal
+        setShowModal(false);
         localStorage.removeItem("carrito");
         setCarritoLocal([]);
-        setShowModal(false);
-
-        // Redirigir al link de pago
         window.location.href = data.init_point;
       } else {
         alert("❌ Error al generar la preferencia de pago");
@@ -102,68 +161,62 @@ export default function Carrito({ carrito, setCarrito }) {
     }
   };
 
-  // ======================================
-  //           🧱 Render principal
-  // ======================================
-  if (carritoLocal.length === 0) {
+  // ============================
+  //        🎨 RENDER
+  // ============================
+  if (carritoLocal.length === 0)
     return (
       <div style={styles.container}>
         <h2 style={styles.titulo}>🛒 Carrito</h2>
         <p style={styles.textoVacio}>Tu carrito está vacío</p>
       </div>
     );
-  }
 
   return (
     <div style={styles.container}>
       <h2 style={styles.titulo}>🛒 Carrito</h2>
 
-      {/* 🛍️ Lista de productos */}
       <div style={styles.grid}>
-        {carritoLocal.map((producto) => {
-          const imagenBase64 = producto.imagen
-            ? byteaToBase64(producto.imagen)
-            : null;
-
+        {carritoLocal.map((p) => {
+          const imagenBase64 = p.imagen ? byteaToBase64(p.imagen) : null;
           return (
-            <div key={producto.id} style={styles.card}>
+            <div key={p.id} style={styles.card}>
               {imagenBase64 ? (
                 <img
                   src={`data:image/png;base64,${imagenBase64}`}
-                  alt={producto.nombre}
+                  alt={p.nombre}
                   style={styles.imagen}
                 />
               ) : (
                 <div style={styles.imgPlaceholder}>Sin imagen</div>
               )}
-
               <div style={styles.info}>
-                <h3 style={styles.nombre}>{producto.nombre}</h3>
-                <p style={styles.precio}>${producto.precio.toFixed(2)}</p>
+                <h3 style={styles.nombre}>{p.nombre}</h3>
+                <p style={styles.precio}>${p.precio.toFixed(2)}</p>
 
                 <div style={styles.cantidadContainer}>
                   <button
                     style={styles.cantidadBtn}
-                    onClick={() => reducirCantidad(producto.id)}
+                    onClick={() => reducirCantidad(p.id)}
                   >
                     −
                   </button>
-                  <span style={styles.cantidad}>{producto.cantidad}</span>
+                  <span style={styles.cantidad}>{p.cantidad}</span>
                   <button
                     style={styles.cantidadBtn}
-                    onClick={() => aumentarCantidad(producto.id)}
+                    onClick={() => aumentarCantidad(p.id)}
                   >
                     +
                   </button>
                 </div>
 
                 <p style={styles.subtotal}>
-                  Subtotal: ${(producto.precio * producto.cantidad).toFixed(2)}
+                  Subtotal: ${(p.precio * p.cantidad).toFixed(2)}
                 </p>
 
                 <button
                   style={styles.eliminarBtn}
-                  onClick={() => eliminarProducto(producto.id)}
+                  onClick={() => eliminarProducto(p.id)}
                 >
                   Eliminar
                 </button>
@@ -173,7 +226,6 @@ export default function Carrito({ carrito, setCarrito }) {
         })}
       </div>
 
-      {/* Total */}
       <div style={styles.totalContainer}>
         <h3>Total: ${total.toFixed(2)}</h3>
         <button style={styles.pagarBtn} onClick={pagar} disabled={loading}>
@@ -181,64 +233,93 @@ export default function Carrito({ carrito, setCarrito }) {
         </button>
       </div>
 
-      {/* ✨ Modal de datos del cliente */}
+      {/* ✨ Modal */}
       {showModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
-            <h3>Datos del cliente 📦</h3>
+            {step === "form" && (
+              <>
+                <h3>Datos del cliente 📦</h3>
+                <input
+                  type="email"
+                  placeholder="Correo Gmail"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={styles.input}
+                />
+                <input
+                  type="text"
+                  placeholder="Teléfono"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  style={styles.input}
+                />
+                <input
+                  type="text"
+                  placeholder="Dirección"
+                  value={direccion}
+                  onChange={(e) => setDireccion(e.target.value)}
+                  style={styles.input}
+                />
+                <input
+                  type="text"
+                  placeholder="Ciudad"
+                  value={ciudad}
+                  onChange={(e) => setCiudad(e.target.value)}
+                  style={styles.input}
+                />
+                <input
+                  type="text"
+                  placeholder="Región"
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                  style={styles.input}
+                />
 
-            <input
-              type="email"
-              placeholder="Correo electrónico"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={styles.input}
-            />
-            <input
-              type="text"
-              placeholder="Teléfono"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              style={styles.input}
-            />
-            <input
-              type="text"
-              placeholder="Dirección"
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
-              style={styles.input}
-            />
-            <input
-              type="text"
-              placeholder="Ciudad"
-              value={ciudad}
-              onChange={(e) => setCiudad(e.target.value)}
-              style={styles.input}
-            />
-            <input
-              type="text"
-              placeholder="Región"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              style={styles.input}
-            />
+                <button
+                  style={styles.confirmBtn}
+                  onClick={enviarCodigo}
+                  disabled={loading}
+                >
+                  {loading ? "Enviando..." : "Enviar código"}
+                </button>
+                <button
+                  style={styles.cancelBtn}
+                  onClick={() => setShowModal(false)}
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+              </>
+            )}
 
-            <div style={{ marginTop: "15px" }}>
-              <button
-                style={styles.confirmBtn}
-                onClick={confirmarPago}
-                disabled={loading}
-              >
-                {loading ? "Procesando..." : "Confirmar pedido"}
-              </button>
-              <button
-                style={styles.cancelBtn}
-                onClick={() => setShowModal(false)}
-                disabled={loading}
-              >
-                Cancelar
-              </button>
-            </div>
+            {step === "code" && (
+              <>
+                <h3>Verifica tu correo 📩</h3>
+                <p>Te enviamos un código a {email}</p>
+                <input
+                  type="text"
+                  placeholder="Código de 6 dígitos"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  style={styles.input}
+                />
+                <button
+                  style={styles.confirmBtn}
+                  onClick={verificarCodigo}
+                  disabled={loading}
+                >
+                  {loading ? "Verificando..." : "Confirmar"}
+                </button>
+                <button
+                  style={styles.cancelBtn}
+                  onClick={() => setStep("form")}
+                  disabled={loading}
+                >
+                  Volver
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -246,9 +327,9 @@ export default function Carrito({ carrito, setCarrito }) {
   );
 }
 
-// =========================================
-// Función auxiliar para convertir imágenes
-// =========================================
+// ====================
+// Helper y estilos
+// ====================
 const byteaToBase64 = (bytea) => {
   if (!bytea) return null;
   const hex = bytea.startsWith("\\x") ? bytea.slice(2) : bytea;
@@ -259,9 +340,6 @@ const byteaToBase64 = (bytea) => {
   return btoa(str);
 };
 
-// =========================================
-// Estilos
-// =========================================
 const styles = {
   container: { padding: "30px", maxWidth: "1200px", margin: "0 auto", minHeight: "100vh" },
   titulo: { color: "#ff5c8d", fontSize: "2rem", marginBottom: "20px", textAlign: "center" },
@@ -280,9 +358,9 @@ const styles = {
   eliminarBtn: { marginTop: "8px", padding: "8px", borderRadius: "8px", border: "none", backgroundColor: "red", color: "white", cursor: "pointer" },
   totalContainer: { marginTop: "30px", textAlign: "right", color: "white" },
   pagarBtn: { marginTop: "10px", padding: "12px 20px", borderRadius: "12px", border: "none", background: "linear-gradient(90deg, #ff5c8d, #ffb347)", color: "white", fontWeight: "bold", cursor: "pointer" },
-  modalOverlay: { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
-  modal: { background: "#222", padding: "20px", borderRadius: "12px", width: "90%", maxWidth: "400px", color: "white", textAlign: "center" },
-  input: { display: "block", width: "80%", margin: "8px auto", padding: "10px", borderRadius: "8px", border: "1px solid #ff5c8d", fontSize: "1rem" },
-  confirmBtn: { marginRight: "10px", padding: "10px 15px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" },
-  cancelBtn: { padding: "10px 15px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" },
+  modalOverlay: { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
+  modal: { background: "#111", padding: "25px", borderRadius: "14px", width: "90%", maxWidth: "420px", color: "white", textAlign: "center", boxShadow: "0 0 15px rgba(255,92,141,0.5)" },
+  input: { display: "block", width: "80%", margin: "8px auto", padding: "10px", borderRadius: "8px", border: "1px solid #ff5c8d", fontSize: "1rem", backgroundColor: "#222", color: "white" },
+  confirmBtn: { margin: "10px", padding: "10px 15px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" },
+  cancelBtn: { margin: "10px", padding: "10px 15px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" },
 };
