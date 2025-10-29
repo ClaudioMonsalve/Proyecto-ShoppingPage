@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // 👈 IMPORTANTE
 import { supabase } from "../supabaseClient";
 
 export default function Success() {
@@ -6,6 +7,7 @@ export default function Success() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate(); // 👈 para redirigir
 
   useEffect(() => {
     const pedido_id = localStorage.getItem("pedido_id");
@@ -13,6 +15,8 @@ export default function Success() {
     if (!pedido_id) {
       setError("No se encontró un pedido reciente.");
       setLoading(false);
+      // ⏳ Redirige después de 2 segundos aunque no haya pedido
+      setTimeout(() => navigate("/"), 2000);
       return;
     }
 
@@ -50,16 +54,21 @@ export default function Success() {
             subtotal: i.subtotal,
           }))
         );
+
+        // 🕒 Redirige automáticamente al home después de 4 segundos
+        setTimeout(() => navigate("/"), 4000);
       } catch (err) {
         console.error("❌ Error cargando pedido:", err);
         setError("No se pudo cargar el pedido.");
+        // ⏳ Redirige aunque haya error
+        setTimeout(() => navigate("/"), 4000);
       } finally {
         setLoading(false);
       }
     }
 
     fetchPedido();
-  }, []);
+  }, [navigate]);
 
   if (loading) return <p style={{ textAlign: "center" }}>Cargando pedido...</p>;
   if (error) return <p style={{ textAlign: "center", color: "red" }}>{error}</p>;
@@ -80,7 +89,10 @@ export default function Success() {
           </li>
         ))}
       </ul>
+
+      <p style={{ color: "#888", marginTop: "15px" }}>
+        Serás redirigido automáticamente al inicio 🏠...
+      </p>
     </div>
   );
 }
-
