@@ -7,6 +7,7 @@ import Carrito from "./pages/Carrito";
 import Perfil from "./pages/Perfil";
 import Admin from "./pages/Admin";
 import Success from "./pages/success";
+import TrackPedido from "./pages/track
 
 function App() {
   const [carrito, setCarrito] = useState(() => {
@@ -30,6 +31,7 @@ function App() {
         <Route path="/perfil" element={<Perfil usuario={usuario} />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/success" element={<Success setCarrito={setCarrito} />} />
+        <Route path="/track" element={<TrackPedido />} />
       </Routes>
     </Router>
   );
