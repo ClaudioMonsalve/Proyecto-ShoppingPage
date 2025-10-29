@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // 👈 IMPORTANTE
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
 export default function Success() {
@@ -7,22 +7,21 @@ export default function Success() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate(); // 👈 para redirigir
+  const navigate = useNavigate();
 
   useEffect(() => {
     const pedido_id = localStorage.getItem("pedido_id");
 
+    // ⚡ Si no hay pedido guardado → redirige al Home de inmediato
     if (!pedido_id) {
       setError("No se encontró un pedido reciente.");
-      setLoading(false);
-      // ⏳ Redirige después de 2 segundos aunque no haya pedido
-      setTimeout(() => navigate("/"), 2000);
+      navigate("/");
       return;
     }
 
     async function fetchPedido() {
       try {
-        // Obtener pedido
+        // 📦 Obtener datos del pedido
         const { data: pedidoData, error: pedidoError } = await supabase
           .from("pedidos")
           .select("id, email, total, estado, created_at")
@@ -32,7 +31,7 @@ export default function Success() {
         if (pedidoError) throw pedidoError;
         setPedido(pedidoData);
 
-        // Obtener detalle
+        // 🧾 Obtener los ítems relacionados con el pedido
         const { data: itemsData, error: itemsError } = await supabase
           .from("detalle_pedidos")
           .select(`
@@ -55,13 +54,13 @@ export default function Success() {
           }))
         );
 
-        // 🕒 Redirige automáticamente al home después de 4 segundos
-        setTimeout(() => navigate("/"), 4000);
+        // 🏠 Redirige inmediatamente al Home cuando todo carga bien
+        navigate("/");
       } catch (err) {
         console.error("❌ Error cargando pedido:", err);
         setError("No se pudo cargar el pedido.");
-        // ⏳ Redirige aunque haya error
-        setTimeout(() => navigate("/"), 4000);
+        // ⚡ Redirige aunque haya error
+        navigate("/");
       } finally {
         setLoading(false);
       }
@@ -70,29 +69,6 @@ export default function Success() {
     fetchPedido();
   }, [navigate]);
 
-  if (loading) return <p style={{ textAlign: "center" }}>Cargando pedido...</p>;
-  if (error) return <p style={{ textAlign: "center", color: "red" }}>{error}</p>;
-
-  return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>✅ Pedido realizado</h1>
-      <h2>Pedido ID: {pedido.id}</h2>
-      <p>Email: {pedido.email}</p>
-      <p>Total: ${pedido.total}</p>
-      <p>Estado: {pedido.estado}</p>
-
-      <h3>Detalle:</h3>
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {items.map((item) => (
-          <li key={item.id} style={{ marginBottom: "10px" }}>
-            {item.nombre} - {item.cantidad} x ${item.precio} = ${item.subtotal}
-          </li>
-        ))}
-      </ul>
-
-      <p style={{ color: "#888", marginTop: "15px" }}>
-        Serás redirigido automáticamente al inicio 🏠...
-      </p>
-    </div>
-  );
+  // 🕒 Como redirige al instante, no mostramos nada visualmente
+  return null;
 }
