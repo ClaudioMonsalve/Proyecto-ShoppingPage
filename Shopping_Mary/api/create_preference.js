@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         quantity: Number(item.cantidad),
       })),
       back_urls: {
-        success: successUrl.toString(),
+        success: "https://proyecto-shopping-page.vercel.app/success",
         failure: "https://proyecto-shopping-page.vercel.app/",
         pending: "https://proyecto-shopping-page.vercel.app/",
       },
