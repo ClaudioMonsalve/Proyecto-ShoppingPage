@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../supabaseClient";
 
 export default function Carrito({ carrito, setCarrito }) {
   const [loading, setLoading] = useState(false);
@@ -8,11 +7,13 @@ export default function Carrito({ carrito, setCarrito }) {
     return saved ? JSON.parse(saved) : carrito;
   });
 
+  // ✨ Estados para el modal y verificación
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailStep, setEmailStep] = useState("email");
+  const [emailStep, setEmailStep] = useState("email"); // "email" o "code"
   const [email, setEmail] = useState(() => localStorage.getItem("email") || "");
   const [verificationCode, setVerificationCode] = useState("");
 
+  // 🔄 Sincronizar carrito con localStorage
   useEffect(() => {
     setCarrito(carritoLocal);
     localStorage.setItem("carrito", JSON.stringify(carritoLocal));
@@ -22,6 +23,7 @@ export default function Carrito({ carrito, setCarrito }) {
     if (email) localStorage.setItem("email", email);
   }, [email]);
 
+  // 🧮 Funciones básicas del carrito
   const eliminarProducto = (id) => {
     setCarritoLocal(carritoLocal.filter((p) => p.id !== id));
   };
@@ -54,7 +56,7 @@ export default function Carrito({ carrito, setCarrito }) {
   // ===============================
   const pagar = () => {
     if (carritoLocal.length === 0) {
-      alert("El carrito está vacío");
+      alert("⚠️ El carrito está vacío");
       return;
     }
     setShowEmailModal(true);
@@ -98,14 +100,13 @@ export default function Carrito({ carrito, setCarrito }) {
       });
 
       if (!res.ok) {
-        console.error("❌ Error del servidor:", res.status);
-        alert("❌ Error al verificar el código");
+        alert("❌ Código incorrecto");
         return;
       }
 
       const data = await res.json();
       if (data.success) {
-        confirmarPago();
+        confirmarPago(); // 👈 va a crear la preferencia con email incluido
       } else {
         alert("❌ Código inválido");
       }
@@ -117,62 +118,34 @@ export default function Carrito({ carrito, setCarrito }) {
   };
 
   // ===============================
-  //     💳 PROCESAR PAGO (MP)
+  //        🛍️ PROCESAR PAGO
   // ===============================
   const confirmarPago = async () => {
     setLoading(true);
+    const items = carritoLocal.map((producto) => ({
+      id: producto.id,
+      nombre: producto.nombre,
+      precio: producto.precio,
+      cantidad: producto.cantidad,
+    }));
+
     try {
-      // 1. Guardar pedido en Supabase
-      const { data: pedido, error: pedidoError } = await supabase
-        .from("pedidos")
-        .insert([{ email, total, estado: "pendiente" }])
-        .select("id")
-        .single();
-
-      if (pedidoError) {
-        console.error("❌ Error al guardar pedido:", pedidoError);
-        alert("❌ No se pudo crear el pedido.");
-        return;
-      }
-
-      // 2. Guardar detalles
-      const detalles = carritoLocal.map((producto) => ({
-        pedido_id: pedido.id,
-        producto_id: producto.id,
-        cantidad: producto.cantidad,
-        subtotal: producto.precio * producto.cantidad,
-      }));
-
-      const { error: detalleError } = await supabase
-        .from("detalle_pedidos")
-        .insert(detalles);
-
-      if (detalleError) {
-        console.error("❌ Error al guardar detalles:", detalleError);
-        alert("❌ No se pudieron guardar los detalles.");
-        return;
-      }
-
-      // 🧠 Guardar pedido_id en localStorage para Success.jsx
-      localStorage.setItem("pedido_id", pedido.id);
-
-      // 3. Crear preferencia de pago en Mercado Pago
-      const items = carritoLocal.map((producto) => ({
-        nombre: producto.nombre,
-        precio: producto.precio,
-        cantidad: producto.cantidad,
-      }));
-
       const res = await fetch("/api/create_preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ email, items }),
       });
 
       const data = await res.json();
+
       if (data.init_point) {
+        // Guardamos ID del pedido para Success
+        localStorage.setItem("pedido_id", data.pedido_id);
+
+        // Ocultamos modal
         setShowEmailModal(false);
-        // 👇 redirección al checkout de Mercado Pago
+
+        // Redirigimos a MercadoPago
         window.location.href = data.init_point;
       } else {
         alert("❌ Error al generar la preferencia de pago");
@@ -185,15 +158,23 @@ export default function Carrito({ carrito, setCarrito }) {
     }
   };
 
+  if (carritoLocal.length === 0) {
+    return (
+      <div style={styles.container}>
+        <h2 style={styles.titulo}>🛒 Carrito</h2>
+        <p style={styles.textoVacio}>Tu carrito está vacío</p>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
       <h2 style={styles.titulo}>🛒 Carrito</h2>
 
+      {/* 🛍️ Lista de productos */}
       <div style={styles.grid}>
         {carritoLocal.map((producto) => {
-          const imagenBase64 = producto.imagen
-            ? byteaToBase64(producto.imagen)
-            : null;
+          const imagenBase64 = producto.imagen ? byteaToBase64(producto.imagen) : null;
 
           return (
             <div key={producto.id} style={styles.card}>
@@ -212,17 +193,11 @@ export default function Carrito({ carrito, setCarrito }) {
                 <p style={styles.precio}>${producto.precio.toFixed(2)}</p>
 
                 <div style={styles.cantidadContainer}>
-                  <button
-                    style={styles.cantidadBtn}
-                    onClick={() => reducirCantidad(producto.id)}
-                  >
+                  <button style={styles.cantidadBtn} onClick={() => reducirCantidad(producto.id)}>
                     −
                   </button>
                   <span style={styles.cantidad}>{producto.cantidad}</span>
-                  <button
-                    style={styles.cantidadBtn}
-                    onClick={() => aumentarCantidad(producto.id)}
-                  >
+                  <button style={styles.cantidadBtn} onClick={() => aumentarCantidad(producto.id)}>
                     +
                   </button>
                 </div>
@@ -231,10 +206,7 @@ export default function Carrito({ carrito, setCarrito }) {
                   Subtotal: ${(producto.precio * producto.cantidad).toFixed(2)}
                 </p>
 
-                <button
-                  style={styles.eliminarBtn}
-                  onClick={() => eliminarProducto(producto.id)}
-                >
+                <button style={styles.eliminarBtn} onClick={() => eliminarProducto(producto.id)}>
                   Eliminar
                 </button>
               </div>
@@ -243,6 +215,7 @@ export default function Carrito({ carrito, setCarrito }) {
         })}
       </div>
 
+      {/* Total */}
       <div style={styles.totalContainer}>
         <h3>Total: ${total.toFixed(2)}</h3>
         <button style={styles.pagarBtn} onClick={pagar} disabled={loading}>
@@ -250,7 +223,7 @@ export default function Carrito({ carrito, setCarrito }) {
         </button>
       </div>
 
-      {/* Modal de verificación */}
+      {/* ✨ Modal de verificación */}
       {showEmailModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
@@ -265,18 +238,10 @@ export default function Carrito({ carrito, setCarrito }) {
                   style={styles.inputEmail}
                 />
                 <div style={{ marginTop: "15px" }}>
-                  <button
-                    style={styles.confirmBtn}
-                    onClick={enviarCodigo}
-                    disabled={loading}
-                  >
+                  <button style={styles.confirmBtn} onClick={enviarCodigo} disabled={loading}>
                     {loading ? "Enviando..." : "Enviar código"}
                   </button>
-                  <button
-                    style={styles.cancelBtn}
-                    onClick={() => setShowEmailModal(false)}
-                    disabled={loading}
-                  >
+                  <button style={styles.cancelBtn} onClick={() => setShowEmailModal(false)}>
                     Cancelar
                   </button>
                 </div>
@@ -297,11 +262,7 @@ export default function Carrito({ carrito, setCarrito }) {
                   style={styles.inputEmail}
                 />
                 <div style={{ marginTop: "15px" }}>
-                  <button
-                    style={styles.confirmBtn}
-                    onClick={verificarCodigo}
-                    disabled={loading}
-                  >
+                  <button style={styles.confirmBtn} onClick={verificarCodigo} disabled={loading}>
                     {loading ? "Verificando..." : "Confirmar"}
                   </button>
                   <button
@@ -310,7 +271,6 @@ export default function Carrito({ carrito, setCarrito }) {
                       setEmailStep("email");
                       setVerificationCode("");
                     }}
-                    disabled={loading}
                   >
                     Volver
                   </button>
@@ -324,6 +284,7 @@ export default function Carrito({ carrito, setCarrito }) {
   );
 }
 
+// Helper para imágenes desde Supabase
 const byteaToBase64 = (bytea) => {
   if (!bytea) return null;
   const hex = bytea.startsWith("\\x") ? bytea.slice(2) : bytea;
@@ -334,6 +295,7 @@ const byteaToBase64 = (bytea) => {
   return btoa(str);
 };
 
+// 🎨 Estilos
 const styles = {
   container: { padding: "30px", maxWidth: "1200px", margin: "0 auto", minHeight: "100vh" },
   titulo: { color: "#ff5c8d", fontSize: "2rem", marginBottom: "20px", textAlign: "center" },
