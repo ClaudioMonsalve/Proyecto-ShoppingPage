@@ -1,4 +1,3 @@
-// /api/create_preference.js
 import { json } from "micro";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import crypto from "crypto";
@@ -11,7 +10,7 @@ const client = new MercadoPagoConfig({
 });
 const preference = new Preference(client);
 
-// ✅ Supabase (solo backend)
+// ✅ Supabase con tus claves
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
   process.env.REACT_APP_SUPABASE_ANON_KEY
@@ -23,13 +22,12 @@ export default async function handler(req, res) {
 
   try {
     const body = await json(req);
-    const { items, datosCliente } = body;
 
-    if (!datosCliente || !datosCliente.email || !items || items.length === 0) {
-      return res.status(400).json({ error: "Faltan datos del cliente o items" });
+    const { email, items, telefono, direccion, ciudad, region } = body;
+
+    if (!email || !items || items.length === 0) {
+      return res.status(400).json({ error: "Faltan datos obligatorios" });
     }
-
-    const { email, telefono, region, ciudad, direccion } = datosCliente;
 
     // 🧮 Calcular total
     const total = items.reduce(
@@ -37,21 +35,21 @@ export default async function handler(req, res) {
       0
     );
 
-    // 🪙 Token de seguimiento único
+    // 🪙 Token de seguimiento
     const tracking_token = crypto.randomBytes(32).toString("hex");
 
-    // 📝 Guardar pedido completo en Supabase
+    // 📝 Guardar pedido en Supabase
     const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
       .insert([
         {
           email,
           telefono,
-          region,
-          ciudad,
           direccion,
+          ciudad,
+          region,
           total,
-          estado: "Pendiente",
+          estado: "pendiente",
           tracking_token,
         },
       ])
@@ -60,7 +58,7 @@ export default async function handler(req, res) {
 
     if (pedidoError) throw pedidoError;
 
-    // 🛍 Guardar detalle de productos
+    // 🛍 Guardar detalle
     const detalle = items.map((p) => ({
       pedido_id: pedido.id,
       producto_id: p.id,
@@ -74,12 +72,12 @@ export default async function handler(req, res) {
 
     if (detalleError) throw detalleError;
 
-    // 💳 Crear preferencia en Mercado Pago
+    // 🧾 Crear preferencia en Mercado Pago
     const preferenceData = {
       items: items.map((item) => ({
         title: item.nombre || "Producto",
-        unit_price: Number(item.precio) > 0 ? Number(item.precio) : 1,
-        quantity: Number(item.cantidad) >= 1 ? Number(item.cantidad) : 1,
+        unit_price: Number(item.precio),
+        quantity: Number(item.cantidad),
       })),
       back_urls: {
         success: "https://proyecto-shopping-page.vercel.app/success",
@@ -108,20 +106,12 @@ export default async function handler(req, res) {
       subject: "📦 Seguimiento de tu pedido",
       html: `
         <h2>¡Gracias por tu compra!</h2>
-        <p>Ya registramos tu pedido. Puedes revisar el estado en cualquier momento aquí:</p>
-        <a href="${trackUrl}">${trackUrl}</a>
-        <hr>
-        <p><strong>Resumen de envío:</strong></p>
-        <ul>
-          <li><b>Dirección:</b> ${direccion}</li>
-          <li><b>Ciudad:</b> ${ciudad}</li>
-          <li><b>Región:</b> ${region}</li>
-          <li><b>Teléfono:</b> ${telefono}</li>
-        </ul>
+        <p>Puedes revisar el estado de tu pedido aquí:</p>
+        <a href="${trackUrl}" target="_blank">${trackUrl}</a>
       `,
     });
 
-    // ✅ Devolver link de pago + id del pedido
+    // ✅ Responder con link de pago
     return res.status(200).json({
       init_point: response.sandbox_init_point,
       pedido_id: pedido.id,
