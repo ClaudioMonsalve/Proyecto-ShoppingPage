@@ -1,74 +1,104 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
 export default function Success({ setCarrito }) {
-  const [pedido, setPedido] = useState(null);
-  const [items, setItems] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const pedido_id = localStorage.getItem("pedido_id");
+    const query = new URLSearchParams(location.search);
+    const status = query.get("status");
+    const email = query.get("email");
+    const telefono = query.get("telefono");
+    const direccion = query.get("direccion");
+    const ciudad = query.get("ciudad");
+    const region = query.get("region");
 
-    if (!pedido_id) {
-      setError("No se encontró un pedido reciente.");
+    if (status !== "approved") {
+      setError("El pago no fue aprobado.");
       navigate("/");
       return;
     }
 
-    async function fetchPedido() {
+    const carrito = JSON.parse(localStorage.getItem("carrito") || "[]");
+    if (!carrito.length) {
+      setError("No se encontró información del carrito.");
+      navigate("/");
+      return;
+    }
+
+    async function guardarPedido() {
       try {
-        const { data: pedidoData, error: pedidoError } = await supabase
+        const total = carrito.reduce(
+          (acc, item) => acc + item.precio * item.cantidad,
+          0
+        );
+
+        // Guardar pedido
+        const { data: pedido, error: pedidoError } = await supabase
           .from("pedidos")
-          .select("id, email, total, estado, created_at")
-          .eq("id", Number(pedido_id))
+          .insert([
+            { email, telefono, direccion, ciudad, region, total, estado: "pagado" },
+          ])
+          .select()
           .single();
 
         if (pedidoError) throw pedidoError;
-        setPedido(pedidoData);
 
-        const { data: itemsData, error: itemsError } = await supabase
+        // Guardar detalle
+        const detalle = carrito.map((p) => ({
+          pedido_id: pedido.id,
+          producto_id: p.id,
+          cantidad: p.cantidad,
+          subtotal: p.precio * p.cantidad,
+        }));
+
+        const { error: detalleError } = await supabase
           .from("detalle_pedidos")
-          .select(`
-            id,
-            cantidad,
-            subtotal,
-            producto:productos(nombre, precio)
-          `)
-          .eq("pedido_id", Number(pedido_id));
+          .insert(detalle);
 
-        if (itemsError) throw itemsError;
+        if (detalleError) throw detalleError;
 
-        setItems(
-          itemsData.map((i) => ({
-            id: i.id,
-            nombre: i.producto.nombre,
-            cantidad: i.cantidad,
-            precio: i.producto.precio,
-            subtotal: i.subtotal,
-          }))
-        );
+        console.log("✅ Pedido guardado correctamente:", pedido.id);
 
-        // 🧹 Vaciar carrito global + localStorage
+        // ✉️ Enviar correo de confirmación
+        await fetch("/api/send_confirmacion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            pedido_id: pedido.id,
+            total,
+            direccion,
+            ciudad,
+            region,
+          }),
+        });
+
+        // 🧹 Vaciar carrito y volver al home
         setCarrito([]);
         localStorage.removeItem("carrito");
-
-        // 🏠 Redirigir
         navigate("/");
       } catch (err) {
-        console.error("❌ Error cargando pedido:", err);
-        setError("No se pudo cargar el pedido.");
+        console.error("❌ Error guardando pedido:", err);
+        setError("Error al guardar el pedido.");
         navigate("/");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchPedido();
-  }, [navigate, setCarrito]);
+    guardarPedido();
+  }, [location.search, navigate, setCarrito]);
+
+  if (loading) return <p style={{ textAlign: "center" }}>Procesando pago...</p>;
+  if (error) return <p style={{ textAlign: "center", color: "red" }}>{error}</p>;
 
   return null;
 }
+
 
