@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { useNavigate } from "react-router-dom";
 
 export default function Success() {
+  const navigate = useNavigate();
   const [pedido, setPedido] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +52,15 @@ export default function Success() {
             subtotal: i.subtotal,
           }))
         );
+
+        // 🕒 Redirigir al home después de 2 segundos
+        setTimeout(() => {
+          // 🧹 Limpia carrito y pedido_id si quieres
+          localStorage.removeItem("carrito");
+          localStorage.removeItem("pedido_id");
+          navigate("/");
+        }, 2000);
+
       } catch (err) {
         console.error("❌ Error cargando pedido:", err);
         setError("No se pudo cargar el pedido.");
@@ -59,14 +70,14 @@ export default function Success() {
     }
 
     fetchPedido();
-  }, []);
+  }, [navigate]);
 
   if (loading) return <p style={{ textAlign: "center" }}>Cargando pedido...</p>;
   if (error) return <p style={{ textAlign: "center", color: "red" }}>{error}</p>;
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>✅ Pedido realizado</h1>
+      <h1>✅ Pedido realizado con éxito</h1>
       <h2>Pedido ID: {pedido.id}</h2>
       <p>Email: {pedido.email}</p>
       <p>Total: ${pedido.total}</p>
@@ -80,7 +91,10 @@ export default function Success() {
           </li>
         ))}
       </ul>
+
+      <p style={{ color: "#666", marginTop: "20px" }}>
+        Serás redirigido automáticamente a la página principal 🏡
+      </p>
     </div>
   );
 }
-
