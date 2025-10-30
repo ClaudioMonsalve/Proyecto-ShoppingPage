@@ -25,8 +25,13 @@ export default function Success({ setCarrito }) {
 
     // ⚙️ Recuperar carrito del almacenamiento local
     const carrito = JSON.parse(localStorage.getItem("carrito_backup") || "[]");
+    if (!carrito.length) {
+      setEstado("error");
+      setMensajeError("No se encontró información del carrito.");
+      return;
+    }
 
-    // 🧮 Calcular total y enviar al backend
+    // 🧮 Calcular total
     const total = carrito.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
 
     async function guardarPedido() {
@@ -46,19 +51,37 @@ export default function Success({ setCarrito }) {
         });
 
         const data = await res.json();
-
         if (!res.ok || !data.success) {
           throw new Error(data.error || "Error al guardar el pedido.");
         }
 
+        const pedido = data.pedido;
+
+        // ✉️ Enviar correo con link de seguimiento
+        try {
+          await fetch("/api/send_confirmacion", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              pedido_id: pedido.id,
+              total: pedido.total,
+              direccion: pedido.direccion,
+              ciudad: pedido.ciudad,
+              region: pedido.region,
+              tracking_token: pedido.tracking_token, // 👈 necesario para el link
+            }),
+          });
+        } catch (mailErr) {
+          console.warn("⚠️ Falló el envío del correo:", mailErr);
+        }
+
         // 🧹 Vaciar carrito local
         setCarrito([]);
-        // Limpiar copia del carrito
         localStorage.removeItem("carrito_backup");
 
-
         // ✅ Guardar información para mostrar
-        setPedido(data.pedido);
+        setPedido(pedido);
         setEstado("exito");
       } catch (err) {
         console.error("❌ Error al guardar pedido:", err);
@@ -100,12 +123,12 @@ export default function Success({ setCarrito }) {
           <h1 style={st.title}>✅ ¡Pago confirmado!</h1>
           <p><strong>Pedido #{pedido.id}</strong></p>
           <p>Total: ${pedido.total}</p>
-          <p>
-            Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}
-          </p>
+          <p>Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}</p>
+
           <a href={trackUrl} target="_blank" rel="noreferrer" style={st.btn}>
             Ver seguimiento del pedido
           </a>
+
           <div style={{ marginTop: 10 }}>
             <Link to="/" style={st.link}>Volver al inicio</Link>
           </div>
@@ -133,9 +156,7 @@ const st = {
     textAlign: "center",
     boxShadow: "0 0 20px rgba(255,92,141,0.2)",
   },
-  title: {
-    marginBottom: "10px",
-  },
+  title: { marginBottom: "10px" },
   btn: {
     display: "inline-block",
     background: "linear-gradient(90deg, #ff5c8d, #ffb347)",
@@ -145,8 +166,5 @@ const st = {
     borderRadius: "8px",
     marginTop: "10px",
   },
-  link: {
-    color: "#aaa",
-    textDecoration: "underline",
-  },
+  link: { color: "#aaa", textDecoration: "underline" },
 };

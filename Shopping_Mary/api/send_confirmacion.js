@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const { email, pedido_id, total, direccion, ciudad, region } = req.body;
+    const { email, pedido_id, total, direccion, ciudad, region, tracking_token } = req.body;
 
     // buscar el token del pedido
     const { data: pedido, error } = await supabase
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
 
-    const trackUrl = `https://proyecto-shopping-page.vercel.app/track?token=${pedido.tracking_token}`;
+    const trackUrl = `https://proyecto-shopping-page.vercel.app/track?token=${tracking_token}`;
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
