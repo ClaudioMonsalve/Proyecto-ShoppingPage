@@ -1,31 +1,36 @@
-// /api/save_pedido.js
+// /api/save_order.js
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
-// Usa tus mismas variables:
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseServiceKey = process.env.REACT_APP_SUPABASE_SERVICE_KEY;
+console.log("🟣 save_order.js cargado");
 
-console.log("🔍 Supabase URL:", supabaseUrl ? "✅ existe" : "❌ falta");
-console.log("🔍 Supabase Key:", supabaseServiceKey ? "✅ existe" : "❌ falta");
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
 
 export default async function handler(req, res) {
-  if (req.method !== "POST")
-    return res.status(405).json({ error: "Método no permitido" });
+  if (req.method !== "POST") {
+    console.log("⚠️ Método no permitido:", req.method);
+    return res.status(405).json({ error: "Método no permitido (usa POST)" });
+  }
 
   try {
-    const { email, telefono, direccion, ciudad, region, total, carrito } = req.body;
+    const body = req.body;
+    console.log("📦 Body recibido:", body);
 
-    console.log("🟡 Datos recibidos:", req.body);
+    const { email, telefono, direccion, ciudad, region, total, carrito } = body || {};
 
-    if (!email || !carrito?.length)
-      return res.status(400).json({ error: "Faltan datos" });
+    if (!email || !carrito?.length) {
+      console.log("⚠️ Faltan datos:", { email, carrito });
+      return res.status(400).json({ error: "Faltan datos para guardar el pedido" });
+    }
 
+    // Generar token de seguimiento
     const tracking_token = crypto.randomBytes(16).toString("hex");
 
-    // Guardar pedido
+    // 🧾 Guardar pedido principal
+    console.log("🟢 Insertando pedido...");
     const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
       .insert([
@@ -48,9 +53,8 @@ export default async function handler(req, res) {
       throw pedidoError;
     }
 
-    console.log("✅ Pedido insertado:", pedido);
-
-    // Guardar detalle
+    // 🧺 Guardar detalle
+    console.log("🟢 Insertando detalle...");
     const detalle = carrito.map((p) => ({
       pedido_id: pedido.id,
       producto_id: p.id,
@@ -67,11 +71,12 @@ export default async function handler(req, res) {
       throw detalleError;
     }
 
-    console.log("✅ Detalle guardado correctamente");
+    console.log("✅ Pedido guardado correctamente:", pedido.id);
 
+    // Respuesta exitosa
     return res.status(200).json({ success: true, pedido });
   } catch (err) {
-    console.error("🔥 Error general:", err);
+    console.error("🔥 Error en save_order:", err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
