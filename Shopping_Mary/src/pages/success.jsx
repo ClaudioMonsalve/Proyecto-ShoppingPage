@@ -24,7 +24,7 @@ export default function Success({ setCarrito }) {
     }
 
     // ⚙️ Recuperar carrito del almacenamiento local
-    const carrito = JSON.parse(localStorage.getItem("carrito") || "[]");
+    const carrito = JSON.parse(localStorage.getItem("carrito_backup") || "[]");
 
     // 🧮 Calcular total y enviar al backend
     const total = carrito.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
@@ -53,7 +53,9 @@ export default function Success({ setCarrito }) {
 
         // 🧹 Vaciar carrito local
         setCarrito([]);
-        localStorage.removeItem("carrito");
+        // Limpiar copia del carrito
+        localStorage.removeItem("carrito_backup");
+
 
         // ✅ Guardar información para mostrar
         setPedido(data.pedido);

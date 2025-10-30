@@ -147,12 +147,18 @@ export default function Carrito({ carrito, setCarrito }) {
       const data = await res.json();
       if (data.init_point) {
         setShowModal(false);
+
+        // 🧠 Guardar copia del carrito antes de redirigir
+        localStorage.setItem("carrito_backup", JSON.stringify(carritoLocal));
+
+        // 🧹 Vaciar solo el carrito visible, no el backup
         localStorage.removeItem("carrito");
         setCarritoLocal([]);
+
+        // 🔁 Redirigir a Mercado Pago
         window.location.href = data.init_point;
-      } else {
-        alert("❌ Error al generar la preferencia de pago");
       }
+
     } catch (err) {
       console.error("❌ Error al procesar el pago:", err);
       alert("❌ Error al procesar el pago");
