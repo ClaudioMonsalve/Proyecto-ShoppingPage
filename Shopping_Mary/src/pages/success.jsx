@@ -31,7 +31,7 @@ export default function Success({ setCarrito }) {
 
     async function guardarPedido() {
       try {
-        const res = await fetch("/api/save_pedido", {
+        const res = await fetch("/api/save_order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
