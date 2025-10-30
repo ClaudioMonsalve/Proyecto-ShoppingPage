@@ -3,10 +3,9 @@ import { useLocation, Link } from "react-router-dom";
 
 export default function Success({ setCarrito }) {
   const location = useLocation();
-
-  const [guardando, setGuardando] = useState(true);
-  const [error, setError] = useState("");
+  const [estado, setEstado] = useState("procesando"); // procesando | exito | error
   const [pedido, setPedido] = useState(null);
+  const [mensajeError, setMensajeError] = useState("");
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -17,24 +16,21 @@ export default function Success({ setCarrito }) {
     const ciudad = query.get("ciudad");
     const region = query.get("region");
 
+    // ⚠️ Validar pago
     if (status !== "approved") {
-      setError("Pago no aprobado");
-      setGuardando(false);
+      setEstado("error");
+      setMensajeError("El pago no fue aprobado.");
       return;
     }
 
+    // ⚙️ Recuperar carrito del almacenamiento local
     const carrito = JSON.parse(localStorage.getItem("carrito") || "[]");
-    if (!carrito.length) {
-      setError("No se encontró el carrito");
-      setGuardando(false);
-      return;
-    }
+
+    // 🧮 Calcular total y enviar al backend
+    const total = carrito.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
 
     async function guardarPedido() {
       try {
-        setGuardando(true);
-        const total = carrito.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
-
         const res = await fetch("/api/save_pedido", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -50,53 +46,105 @@ export default function Success({ setCarrito }) {
         });
 
         const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || "Error al guardar el pedido");
 
-        setPedido(data.pedido);
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Error al guardar el pedido.");
+        }
 
-        // Vaciar carrito
+        // 🧹 Vaciar carrito local
         setCarrito([]);
         localStorage.removeItem("carrito");
+
+        // ✅ Guardar información para mostrar
+        setPedido(data.pedido);
+        setEstado("exito");
       } catch (err) {
-        console.error("❌ Error al guardar:", err);
-        setError(err.message);
-      } finally {
-        setGuardando(false);
+        console.error("❌ Error al guardar pedido:", err);
+        setMensajeError(err.message);
+        setEstado("error");
       }
     }
 
     guardarPedido();
   }, [location.search, setCarrito]);
 
-  if (guardando)
-    return <div style={st.wrap}><h1>Procesando pago...</h1></div>;
-  if (error)
-    return <div style={st.wrap}><h1>Error:</h1><p>{error}</p><Link to="/">Volver al inicio</Link></div>;
+  // =======================
+  // 🎨 Render
+  // =======================
+  if (estado === "procesando") {
+    return (
+      <div style={st.wrap}>
+        <h1 style={st.title}>Procesando pago...</h1>
+        <p>Por favor espera unos segundos.</p>
+      </div>
+    );
+  }
 
-  if (!pedido)
-    return <div style={st.wrap}><h1>No se pudo cargar el pedido</h1></div>;
+  if (estado === "error") {
+    return (
+      <div style={st.wrap}>
+        <h1 style={{ ...st.title, color: "#ff4d4f" }}>❌ Algo salió mal</h1>
+        <p>{mensajeError}</p>
+        <Link to="/" style={st.btn}>Volver al inicio</Link>
+      </div>
+    );
+  }
 
-  return (
-    <div style={st.wrap}>
-      <div style={st.card}>
-        <h1>✅ ¡Pago aprobado!</h1>
-        <p>Tu pedido ha sido confirmado.</p>
-        <p><strong>Total:</strong> ${pedido.total}</p>
-        <p><strong>Correo:</strong> {pedido.email}</p>
-        <p><strong>Dirección:</strong> {pedido.direccion}, {pedido.ciudad}, {pedido.region}</p>
-
-        <a href={`/track?token=${pedido.tracking_token}`} style={st.btn}>Ver seguimiento</a>
-        <div style={{ marginTop: 12 }}>
-          <Link to="/" style={st.link}>Volver al inicio</Link>
+  if (estado === "exito" && pedido) {
+    const trackUrl = `${window.location.origin}/track?token=${pedido.tracking_token}`;
+    return (
+      <div style={st.wrap}>
+        <div style={st.card}>
+          <h1 style={st.title}>✅ ¡Pago confirmado!</h1>
+          <p><strong>Pedido #{pedido.id}</strong></p>
+          <p>Total: ${pedido.total}</p>
+          <p>
+            Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}
+          </p>
+          <a href={trackUrl} target="_blank" rel="noreferrer" style={st.btn}>
+            Ver seguimiento del pedido
+          </a>
+          <div style={{ marginTop: 10 }}>
+            <Link to="/" style={st.link}>Volver al inicio</Link>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }
 
 const st = {
-  wrap: { textAlign: "center", padding: "50px", color: "#fff" },
-  card: { background: "#111", borderRadius: "12px", padding: "20px", display: "inline-block" },
-  btn: { background: "#ff5c8d", color: "#fff", padding: "10px 15px", borderRadius: "8px", textDecoration: "none" },
-  link: { color: "#ccc", textDecoration: "underline" },
+  wrap: {
+    minHeight: "70vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "column",
+    color: "#fff",
+  },
+  card: {
+    background: "#111",
+    padding: "30px",
+    borderRadius: "12px",
+    textAlign: "center",
+    boxShadow: "0 0 20px rgba(255,92,141,0.2)",
+  },
+  title: {
+    marginBottom: "10px",
+  },
+  btn: {
+    display: "inline-block",
+    background: "linear-gradient(90deg, #ff5c8d, #ffb347)",
+    color: "#fff",
+    textDecoration: "none",
+    padding: "10px 15px",
+    borderRadius: "8px",
+    marginTop: "10px",
+  },
+  link: {
+    color: "#aaa",
+    textDecoration: "underline",
+  },
 };
