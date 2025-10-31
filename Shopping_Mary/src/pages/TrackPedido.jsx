@@ -37,30 +37,48 @@ export default function TrackPedido() {
 
   if (loading) return <p style={styles.loading}>Cargando pedido...</p>;
   if (error) return <p style={styles.error}>{error}</p>;
+  if (!pedido) return null;
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.titulo}>📦 Seguimiento de tu pedido</h1>
-        <p style={styles.subtitulo}>
-          Gracias por tu compra 💖
-        </p>
+        <p style={styles.subtitulo}>Gracias por tu compra 💖</p>
 
         <div style={styles.infoBox}>
           <p><strong>Correo:</strong> {pedido.email}</p>
           <p><strong>Total:</strong> ${pedido.total}</p>
           <p>
-            <strong>Estado:</strong>{" "}
-            <span style={{
-              ...styles.estado,
-              backgroundColor:
-                pedido.estado === "En camino" ? "#ffc107" :
-                pedido.estado === "Entregado" ? "#28a745" : "#17a2b8"
-            }}>
+            <strong>Estado del pedido:</strong>{" "}
+            <span
+              style={{
+                ...styles.estado,
+                backgroundColor:
+                  pedido.estado === "enviado" ? "#ffc107" :
+                  pedido.estado === "entregado" ? "#28a745" : "#17a2b8",
+              }}
+            >
               {pedido.estado}
             </span>
           </p>
-          <p><strong>Fecha:</strong> {new Date(pedido.created_at).toLocaleString()}</p>
+
+          <p>
+            <strong>Estado del pago:</strong>{" "}
+            <span
+              style={{
+                ...styles.estado,
+                backgroundColor:
+                  pedido.estado_pago === "pagado" ? "#28a745" : "#dc3545",
+              }}
+            >
+              {pedido.estado_pago === "pagado" ? "Pagado ✅" : "Pendiente 💵"}
+            </span>
+          </p>
+
+          <p><strong>Método de pago:</strong> {pedido.metodo_pago}</p>
+
+          <p><strong>Dirección:</strong> {pedido.direccion}, {pedido.ciudad}, {pedido.region}</p>
+          <p><strong>Fecha:</strong> {new Date(pedido.creado).toLocaleString()}</p>
         </div>
 
         <h3 style={styles.detalleTitulo}>🛍️ Detalle de tu compra</h3>
@@ -121,6 +139,7 @@ const styles = {
     padding: "15px",
     textAlign: "left",
     marginBottom: "20px",
+    color: "#fff",
   },
   estado: {
     padding: "4px 10px",
