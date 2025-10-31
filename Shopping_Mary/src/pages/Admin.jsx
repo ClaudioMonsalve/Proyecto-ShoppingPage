@@ -86,15 +86,42 @@ export default function Admin() {
     setCargando(false);
   };
 
-  // Eliminar producto
+  // 🗑️ Eliminar producto (solo si no tiene pedidos)
   const eliminarProducto = async (id) => {
     if (!window.confirm("¿Seguro quieres eliminar este producto?")) return;
     setCargando(true);
-    const { error } = await supabase.from("productos").delete().eq("id", id);
-    if (error) alert("❌ Error al eliminar producto: " + error.message);
-    else fetchProductos();
-    setCargando(false);
+
+    try {
+      // 🧩 1️⃣ Verificar si el producto está en algún pedido
+      const { data: detalle, error: detalleError } = await supabase
+        .from("detalle_pedidos")
+        .select("id")
+        .eq("producto_id", id);
+
+      if (detalleError) throw detalleError;
+
+      // ⚠️ 2️⃣ Si hay pedidos, no permitir eliminar
+      if (detalle && detalle.length > 0) {
+        alert("⚠️ No puedes eliminar este producto porque ya está en pedidos realizados.");
+        setCargando(false);
+        return;
+      }
+
+      // ✅ 3️⃣ Si no hay pedidos asociados, eliminarlo
+      const { error } = await supabase.from("productos").delete().eq("id", id);
+
+      if (error) throw error;
+
+      alert("✅ Producto eliminado correctamente.");
+      fetchProductos(); // refrescar lista
+    } catch (err) {
+      console.error("❌ Error al eliminar producto:", err);
+      alert("❌ Error al eliminar producto: " + err.message);
+    } finally {
+      setCargando(false);
+    }
   };
+
 
   // Iniciar edición
   const editarProducto = (producto) => {
