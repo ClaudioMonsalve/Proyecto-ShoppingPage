@@ -31,7 +31,7 @@ export default async function handler(req, res) {
         created_at
       `
       )
-      .eq("tracking_token", token)
+      .ilike("tracking_token", token.trim())
       .single();
 
     if (pedidoError || !pedido) {
