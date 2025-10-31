@@ -110,33 +110,45 @@ export default function Admin() {
   // Actualizar producto
   const actualizarProducto = async () => {
     if (!productoEditando) return;
+    if (!nombre || !precio || !stock)
+      return alert("⚠️ Nombre, precio y stock son obligatorios");
+
     setCargando(true);
 
-    let imagenBytea = productoEditando.imagen;
-    if (imagenFile) {
-      imagenBytea = await fileToBytea(imagenFile);
-    }
-
-    const { error } = await supabase
-      .from("productos")
-      .update({
-        nombre,
+    try {
+      // Se construye un objeto limpio con solo campos válidos
+      const nuevosDatos = {
+        nombre: nombre.trim(),
         precio: parseFloat(precio),
         stock: parseInt(stock),
-        descripcion,
-        imagen: imagenBytea,
-      })
-      .eq("id", productoEditando.id);
+        descripcion: descripcion.trim(),
+      };
 
-    if (error) alert("❌ Error al actualizar producto: " + error.message);
-    else {
-      alert("✅ Producto actualizado correctamente");
-      limpiarFormulario();
-      fetchProductos();
+      // ✅ Ejecutar UPDATE con select() para confirmar
+      const { data, error } = await supabase
+        .from("productos")
+        .update(nuevosDatos)
+        .eq("id", productoEditando.id)
+        .select();
+
+      if (error) {
+        console.error("Error al actualizar:", error);
+        alert("❌ No se pudo modificar el producto: " + error.message);
+      } else if (data && data.length > 0) {
+        alert("✅ Producto modificado correctamente en Supabase");
+        await fetchProductos(); // recarga los datos actualizados
+        limpiarFormulario();
+      } else {
+        alert("⚠️ No se detectaron cambios en la base de datos.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("⚠️ Error inesperado: " + err.message);
     }
 
     setCargando(false);
   };
+
 
   const limpiarFormulario = () => {
     setNombre("");
