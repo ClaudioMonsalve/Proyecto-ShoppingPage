@@ -116,38 +116,47 @@ export default function Admin() {
     setCargando(true);
 
     try {
-      // Se construye un objeto limpio con solo campos válidos
-      const nuevosDatos = {
-        nombre: nombre.trim(),
-        precio: parseFloat(precio),
-        stock: parseInt(stock),
-        descripcion: descripcion.trim(),
-      };
+      let imagenBytea = productoEditando.imagen; // mantener la anterior por defecto
 
-      // ✅ Ejecutar UPDATE con select() para confirmar
+      // ✅ Si el usuario sube una nueva imagen, convertirla a bytea
+      if (imagenFile) {
+        imagenBytea = await fileToBytea(imagenFile);
+      }
+
+      // ✅ Asegurar que siempre tenga el formato \xHEX...
+      if (imagenBytea && !imagenBytea.startsWith("\\x")) {
+        imagenBytea = "\\x" + imagenBytea.replace(/^0x/, "");
+      }
+
+      // ✅ Ejecutar UPDATE con todos los campos, incluida imagen
       const { data, error } = await supabase
         .from("productos")
-        .update(nuevosDatos)
+        .update({
+          nombre: nombre.trim(),
+          precio: parseFloat(precio),
+          stock: parseInt(stock),
+          descripcion: descripcion.trim(),
+          imagen: imagenBytea, // ← clave: pasar el bytea bien formateado
+        })
         .eq("id", productoEditando.id)
-        .select();
+        .select("*");
 
       if (error) {
-        console.error("Error al actualizar:", error);
-        alert("❌ No se pudo modificar el producto: " + error.message);
-      } else if (data && data.length > 0) {
-        alert("✅ Producto modificado correctamente en Supabase");
-        await fetchProductos(); // recarga los datos actualizados
-        limpiarFormulario();
+        console.error("❌ Error Supabase:", error);
+        alert("❌ No se pudo actualizar la imagen: " + error.message);
       } else {
-        alert("⚠️ No se detectaron cambios en la base de datos.");
+        alert("✅ Producto actualizado correctamente (incluida imagen)");
+        await fetchProductos(); // recarga los productos desde la BD
+        limpiarFormulario();
       }
     } catch (err) {
-      console.error(err);
+      console.error("⚠️ Error inesperado:", err);
       alert("⚠️ Error inesperado: " + err.message);
     }
 
     setCargando(false);
   };
+
 
 
   const limpiarFormulario = () => {
