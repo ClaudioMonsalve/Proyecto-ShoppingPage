@@ -30,11 +30,18 @@ export default function Home({ carrito, setCarrito }) {
         return;
       }
 
-      setProductos(data);
+      // ⚙️ Leer lista de productos ocultos del localStorage
+      const ocultos = JSON.parse(localStorage.getItem("productos_ocultos") || "[]");
+
+      // 🔍 Filtrar los productos que no están ocultos
+      const visibles = data.filter((p) => !ocultos.includes(p.id));
+
+      setProductos(visibles);
       setLoading(false);
     };
     fetchProductos();
   }, []);
+
 
   const agregarAlCarrito = (producto) => {
     const productoExistente = carrito.find((p) => p.id === producto.id);
