@@ -3,67 +3,153 @@ import { useEffect, useState } from "react";
 export default function AdminPedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
-
-  const fetchPedidos = async () => {
-    const res = await fetch("/api/get_pedidos");
-    const data = await res.json();
-    setPedidos(data.pedidos || []);
-    setCargando(false);
-  };
-
-  const actualizarEstado = async (id, nuevoEstado) => {
-    await fetch("/api/update_pedidos", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, estado: nuevoEstado }),
-    });
-    fetchPedidos();
-  };
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    async function fetchPedidos() {
+      try {
+        const res = await fetch("/api/get_pedidos");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Error al obtener pedidos");
+
+        // 🧠 Ordenar por fecha (más recientes primero)
+        const ordenados = data.pedidos.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+
+        setPedidos(ordenados);
+      } catch (err) {
+        console.error("❌ Error cargando pedidos:", err);
+        setError(err.message);
+      } finally {
+        setCargando(false);
+      }
+    }
     fetchPedidos();
   }, []);
 
-  if (cargando) return <p style={{ color: "#fff" }}>Cargando pedidos...</p>;
+  if (cargando)
+    return <p style={{ textAlign: "center", color: "#ccc" }}>Cargando pedidos...</p>;
+  if (error)
+    return <p style={{ textAlign: "center", color: "red" }}>❌ {error}</p>;
 
   return (
-    <div style={{ color: "#fff", padding: 20 }}>
-      <h1>📦 Administración de Pedidos</h1>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Email</th>
-            <th>Total</th>
-            <th>Pago</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div style={st.container}>
+      <h1 style={st.title}>📦 Panel de Pedidos</h1>
+
+      {pedidos.length === 0 ? (
+        <p style={{ color: "#ccc", textAlign: "center" }}>No hay pedidos registrados aún.</p>
+      ) : (
+        <div style={st.grid}>
           {pedidos.map((p) => (
-            <tr key={p.id}>
-              <td>{p.id}</td>
-              <td>{p.email}</td>
-              <td>${p.total}</td>
-              <td>{p.estado_pago}</td>
-              <td>{p.estado}</td>
-              <td>{new Date(p.created_at).toLocaleString()}</td>
-              <td>
-                <select
-                  value={p.estado}
-                  onChange={(e) => actualizarEstado(p.id, e.target.value)}
+            <div key={p.id} style={st.card}>
+              <div style={st.header}>
+                <span style={st.id}>Pedido #{p.id}</span>
+                <span style={st.fecha}>
+                  {new Date(p.created_at).toLocaleString("es-CL")}
+                </span>
+              </div>
+
+              <div style={st.row}>
+                <strong>📧 Cliente:</strong> {p.email}
+              </div>
+              <div style={st.row}>
+                <strong>📍 Dirección:</strong>{" "}
+                {p.direccion}, {p.ciudad}, {p.region}
+              </div>
+              <div style={st.row}>
+                <strong>💰 Total:</strong> ${p.total.toLocaleString()}
+              </div>
+
+              <div style={st.badges}>
+                <span
+                  style={{
+                    ...st.badge,
+                    backgroundColor:
+                      p.estado_pago === "pagado" ? "#28a745" : "#ffc107",
+                  }}
                 >
-                  <option value="pendiente">Pendiente</option>
-                  <option value="en camino">En camino</option>
-                  <option value="entregado">Entregado</option>
-                </select>
-              </td>
-            </tr>
+                  {p.estado_pago.toUpperCase()}
+                </span>
+                <span
+                  style={{
+                    ...st.badge,
+                    backgroundColor:
+                      p.metodo_pago === "efectivo" ? "#ff5c8d" : "#007bff",
+                  }}
+                >
+                  {p.metodo_pago.toUpperCase()}
+                </span>
+              </div>
+
+              <div style={st.estadoBox}>
+                <strong>🚚 Estado actual:</strong> {p.estado}
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      )}
     </div>
   );
 }
+
+// 🎨 Estilos modernos
+const st = {
+  container: {
+    padding: "30px",
+    color: "#fff",
+    maxWidth: "1100px",
+    margin: "0 auto",
+  },
+  title: {
+    textAlign: "center",
+    marginBottom: "25px",
+    color: "#ff8c00",
+    fontSize: "2rem",
+    textShadow: "0 0 8px rgba(255,140,0,0.4)",
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: "20px",
+  },
+  card: {
+    backgroundColor: "#1f1f1f",
+    borderRadius: "12px",
+    padding: "20px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+    border: "1px solid #333",
+    transition: "transform 0.2s ease",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "10px",
+    borderBottom: "1px solid #333",
+    paddingBottom: "6px",
+  },
+  id: { fontWeight: "bold", color: "#ffb347" },
+  fecha: { color: "#999", fontSize: "0.9rem" },
+  row: { margin: "6px 0" },
+  badges: {
+    display: "flex",
+    gap: "10px",
+    marginTop: "12px",
+  },
+  badge: {
+    padding: "6px 10px",
+    borderRadius: "8px",
+    fontWeight: "bold",
+    color: "#fff",
+    fontSize: "0.8rem",
+    letterSpacing: "0.5px",
+  },
+  estadoBox: {
+    backgroundColor: "#2c2c2c",
+    padding: "8px",
+    marginTop: "12px",
+    borderRadius: "8px",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+};
