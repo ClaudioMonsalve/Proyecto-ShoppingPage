@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
-import { useNavigate } from "react-router-dom"; // 👈 necesario para redirigir
+import { useNavigate } from "react-router-dom";
 
 export default function Admin() {
   const [productos, setProductos] = useState([]);
@@ -15,21 +15,29 @@ export default function Admin() {
   const [modoEditar, setModoEditar] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
 
-  const navigate = useNavigate(); // 👈 hook para redirección
+  const navigate = useNavigate();
 
-  // Cargar productos
+  // === Cargar productos ===
   const fetchProductos = async () => {
     setCargando(true);
     const { data, error } = await supabase
       .from("productos")
       .select("*")
       .order("id", { ascending: true });
+
     if (error) {
       alert("❌ Error al cargar productos: " + error.message);
       setCargando(false);
       return;
     }
-    setProductos(data);
+
+    // ⚙️ Leer lista de ocultos desde localStorage
+    const ocultos = JSON.parse(localStorage.getItem("productos_ocultos") || "[]");
+
+    // 🔍 Filtrar productos visibles (no ocultos)
+    const visibles = data.filter((p) => !ocultos.includes(p.id));
+
+    setProductos(visibles);
     setCargando(false);
   };
 
@@ -37,7 +45,7 @@ export default function Admin() {
     fetchProductos();
   }, []);
 
-  // Preview de imagen
+  // === Preview de imagen ===
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setImagenFile(file);
@@ -47,7 +55,7 @@ export default function Admin() {
     reader.readAsDataURL(file);
   };
 
-  // Convertir file a bytea
+  // === Convertir imagen a bytea ===
   const fileToBytea = async (file) => {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
@@ -56,16 +64,15 @@ export default function Admin() {
     return hex;
   };
 
-  // Agregar producto
+  // === Agregar producto ===
   const agregarProducto = async () => {
     if (!nombre || !precio || !stock)
-      return alert("Nombre, precio y stock son obligatorios");
+      return alert("⚠️ Nombre, precio y stock son obligatorios");
+
     setCargando(true);
 
     let imagenBytea = null;
-    if (imagenFile) {
-      imagenBytea = await fileToBytea(imagenFile);
-    }
+    if (imagenFile) imagenBytea = await fileToBytea(imagenFile);
 
     const { error } = await supabase.from("productos").insert([
       {
@@ -83,15 +90,17 @@ export default function Admin() {
       limpiarFormulario();
       fetchProductos();
     }
+
     setCargando(false);
   };
 
+  // === Eliminar / Ocultar producto ===
   const eliminarProducto = async (id) => {
     if (!window.confirm("¿Seguro que quieres eliminar este producto?")) return;
     setCargando(true);
 
     try {
-      // 🔎 Verificar si el producto está en algún pedido
+      // 🔍 Verificar si el producto está en algún pedido
       const { data: detalle, error: detalleError } = await supabase
         .from("detalle_pedidos")
         .select("id")
@@ -104,7 +113,6 @@ export default function Admin() {
         const ocultos = JSON.parse(localStorage.getItem("productos_ocultos") || "[]");
         if (!ocultos.includes(id)) ocultos.push(id);
         localStorage.setItem("productos_ocultos", JSON.stringify(ocultos));
-
         alert("⚠️ Producto ocultado (ya tiene pedidos, no se puede eliminar).");
       } else {
         // ✅ No tiene pedidos → eliminar realmente
@@ -114,7 +122,6 @@ export default function Admin() {
           .eq("id", id);
 
         if (deleteError) {
-          // 🧠 Si hay restricción en la base, lo mostramos
           console.error("❌ Error Supabase:", deleteError);
           alert(
             "❌ No se pudo eliminar el producto. " +
@@ -134,10 +141,7 @@ export default function Admin() {
     }
   };
 
-
-
-
-  // Iniciar edición
+  // === Editar producto ===
   const editarProducto = (producto) => {
     setModoEditar(true);
     setProductoEditando(producto);
@@ -151,7 +155,7 @@ export default function Admin() {
     setImagenFile(null);
   };
 
-  // Actualizar producto
+  // === Actualizar producto ===
   const actualizarProducto = async () => {
     if (!productoEditando) return;
     if (!nombre || !precio || !stock)
@@ -162,9 +166,8 @@ export default function Admin() {
     try {
       let imagenBytea = productoEditando.imagen;
       if (imagenFile) imagenBytea = await fileToBytea(imagenFile);
-      if (imagenBytea && !imagenBytea.startsWith("\\x")) {
+      if (imagenBytea && !imagenBytea.startsWith("\\x"))
         imagenBytea = "\\x" + imagenBytea.replace(/^0x/, "");
-      }
 
       const { error } = await supabase
         .from("productos")
@@ -191,6 +194,7 @@ export default function Admin() {
     setCargando(false);
   };
 
+  // === Limpiar formulario ===
   const limpiarFormulario = () => {
     setNombre("");
     setPrecio("");
@@ -202,30 +206,21 @@ export default function Admin() {
     setProductoEditando(null);
   };
 
+  // === Filtrar productos por búsqueda ===
   const productosFiltrados = productos.filter((p) =>
     p.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
+  // === Render principal ===
   return (
     <div style={{ padding: 20, maxWidth: 1000, margin: "0 auto", color: "#fff" }}>
       <h1 style={{ textAlign: "center", marginBottom: 10 }}>🛠️ Panel de Administración</h1>
 
-      {/* 🔗 Botón para ir a Admin-Pedidos */}
+      {/* Botón para ver pedidos */}
       <div style={{ textAlign: "center", marginBottom: 25 }}>
         <button
           onClick={() => navigate("/admin-pedidos")}
-          style={{
-            background: "linear-gradient(90deg, #ff5c8d, #ffb347)",
-            border: "none",
-            color: "#fff",
-            padding: "12px 25px",
-            borderRadius: "10px",
-            fontSize: "1rem",
-            fontWeight: "bold",
-            cursor: "pointer",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-            transition: "transform 0.2s",
-          }}
+          style={botonPedidos}
           onMouseEnter={(e) => (e.target.style.transform = "scale(1.05)")}
           onMouseLeave={(e) => (e.target.style.transform = "scale(1.0)")}
         >
@@ -233,9 +228,8 @@ export default function Admin() {
         </button>
       </div>
 
-      {/* --- resto del panel de productos (igual que antes) --- */}
-
-      <div style={{ marginBottom: 20, padding: 20, backgroundColor: "#2c2c2c", borderRadius: 10 }}>
+      {/* Formulario de productos */}
+      <div style={panelFormulario}>
         <h2>{modoEditar ? "✏️ Editar Producto" : "Agregar Producto"}</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
           <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} style={inputStyle} />
@@ -254,11 +248,7 @@ export default function Admin() {
         </div>
 
         <div style={{ marginTop: 15, display: "flex", gap: 10 }}>
-          <button
-            onClick={modoEditar ? actualizarProducto : agregarProducto}
-            disabled={cargando}
-            style={buttonStyle}
-          >
+          <button onClick={modoEditar ? actualizarProducto : agregarProducto} disabled={cargando} style={buttonStyle}>
             {cargando ? "Cargando..." : modoEditar ? "Actualizar" : "Agregar"}
           </button>
           {modoEditar && (
@@ -325,7 +315,7 @@ export default function Admin() {
   );
 }
 
-// Convertir bytea hex a Base64
+// === utilidades ===
 function hexToBase64(hex) {
   if (!hex) return "";
   if (hex.startsWith("\\x")) hex = hex.slice(2);
@@ -335,7 +325,7 @@ function hexToBase64(hex) {
   return btoa(binary);
 }
 
-// Estilos
+// === estilos ===
 const inputStyle = {
   padding: 10,
   borderRadius: 6,
@@ -388,3 +378,16 @@ const productCardStyle = {
   boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
 };
 const imgStyle = { width: 80, height: 80, objectFit: "cover", borderRadius: 6 };
+const botonPedidos = {
+  background: "linear-gradient(90deg, #ff5c8d, #ffb347)",
+  border: "none",
+  color: "#fff",
+  padding: "12px 25px",
+  borderRadius: "10px",
+  fontSize: "1rem",
+  fontWeight: "bold",
+  cursor: "pointer",
+  boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+  transition: "transform 0.2s",
+};
+const panelFormulario = { marginBottom: 20, padding: 20, backgroundColor: "#2c2c2c", borderRadius: 10 };
