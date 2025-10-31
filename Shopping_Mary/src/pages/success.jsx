@@ -62,26 +62,28 @@ export default function Success({ setCarrito }) {
 
         const pedido = data.pedido;
 
-        // ✉️ Enviar correo solo si el pago fue aprobado
-        if (status === "approved") {
-          try {
-            await fetch("/api/send_confirmacion", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email,
-                pedido_id: pedido.id,
-                total: pedido.total,
-                direccion: pedido.direccion,
-                ciudad: pedido.ciudad,
-                region: pedido.region,
-                tracking_token: pedido.tracking_token,
-              }),
-            });
-          } catch (mailErr) {
-            console.warn("⚠️ Falló el envío del correo:", mailErr);
-          }
+
+        // ✉️ Enviar correo en ambos casos (pago aprobado o efectivo)
+        try {
+          await fetch("/api/send_confirmacion", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              pedido_id: pedido.id,
+              total: pedido.total,
+              direccion: pedido.direccion,
+              ciudad: pedido.ciudad,
+              region: pedido.region,
+              tracking_token: pedido.tracking_token,
+              estado_pago: status === "no_pagado" ? "pendiente" : "pagado",
+              metodo_pago: status === "no_pagado" ? "efectivo" : "debito",
+            }),
+          });
+        } catch (mailErr) {
+          console.warn("⚠️ Falló el envío del correo:", mailErr);
         }
+
 
         // 🧹 Limpiar carrito
         setCarrito([]);
