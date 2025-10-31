@@ -22,16 +22,16 @@ export default async function handler(req, res) {
         id,
         email,
         total,
-        estado,        -- estado logístico (pendiente, enviado, etc.)
-        estado_pago,   -- estado financiero (pagado, pendiente)
-        metodo_pago,   -- tipo de pago (efectivo, débito)
+        estado,        
+        estado_pago, 
+        metodo_pago,  
         direccion,
         ciudad,
         region,
         created_at
       `
       )
-      .ilike("tracking_token", token.trim())
+      .eq("tracking_token", token)
       .single();
 
     if (pedidoError || !pedido) {
