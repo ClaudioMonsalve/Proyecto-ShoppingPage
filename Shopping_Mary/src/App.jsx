@@ -7,7 +7,7 @@ import Carrito from "./pages/Carrito";
 import Perfil from "./pages/Perfil";
 import Admin from "./pages/Admin";
 import AdminPedidos from "./pages/AdminPedidos"; // 👈 nuevo import
-import Success from "./pages/Success"; // 🔤 (ojo: S mayúscula)
+import Success from "./pages/success"; // 🔤 (ojo: S mayúscula)
 import TrackPedido from "./pages/TrackPedido";
 
 function App() {
