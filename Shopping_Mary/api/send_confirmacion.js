@@ -1,3 +1,4 @@
+// /api/send_confirmacion.js
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
 
@@ -7,12 +8,23 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
 
   try {
-    const { email, pedido_id, total, direccion, ciudad, region, tracking_token } = req.body;
+    const {
+      email,
+      pedido_id,
+      total,
+      direccion,
+      ciudad,
+      region,
+      tracking_token,
+      estado_pago = "pagado",
+      metodo_pago = "debito",
+    } = req.body;
 
-    // buscar el token del pedido
+    // verificar que el pedido exista
     const { data: pedido, error } = await supabase
       .from("pedidos")
       .select("tracking_token")
@@ -20,12 +32,13 @@ export default async function handler(req, res) {
       .single();
 
     if (error || !pedido) {
-      console.error("❌ Error buscando pedido:", error);
+      console.error("❌ Pedido no encontrado:", error);
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
 
     const trackUrl = `https://proyecto-shopping-page.vercel.app/track?token=${tracking_token}`;
 
+    // configurar transporte
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -34,13 +47,23 @@ export default async function handler(req, res) {
       },
     });
 
+    // cuerpo del correo según el método de pago
+    const pagoTexto =
+      estado_pago === "pagado"
+        ? `<p>Tu pago ha sido confirmado exitosamente ✅</p>`
+        : `<p>Tu pedido ha sido registrado y está <strong>pendiente de pago en ${metodo_pago}</strong>.</p>
+           <p>Por favor paga en efectivo al momento de la entrega.</p>`;
+
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: email,
-      subject: "📦 Confirmación de tu pedido",
+      subject:
+        estado_pago === "pagado"
+          ? "📦 Confirmación de tu pedido"
+          : "🕓 Pedido pendiente de pago",
       html: `
         <h2>¡Gracias por tu compra!</h2>
-        <p>Tu pedido ha sido procesado exitosamente.</p>
+        ${pagoTexto}
         <p><strong>Total:</strong> $${total}</p>
         <p><strong>Dirección:</strong> ${direccion}, ${ciudad}, ${region}</p>
         <p>Puedes revisar el estado de tu pedido aquí:</p>
