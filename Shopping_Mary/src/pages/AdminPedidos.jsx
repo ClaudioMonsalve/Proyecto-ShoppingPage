@@ -5,7 +5,8 @@ export default function AdminPedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [detalle, setDetalle] = useState(null); // 🆕 detalle del pedido seleccionado
+  const [detalle, setDetalle] = useState(null);
+  const [filtro, setFiltro] = useState(() => localStorage.getItem("filtro_pedidos") || "todos"); // 🧠 guarda el último filtro
 
   // 🧠 Cargar pedidos desde Supabase
   const fetchPedidos = async () => {
@@ -43,11 +44,10 @@ export default function AdminPedidos() {
       );
     } catch (err) {
       alert("❌ Error al actualizar: " + err.message);
-      console.error(err);
     }
   };
 
-  // 🧩 Mostrar detalle del pedido
+  // 🔍 Ver detalle del pedido
   const verDetalle = async (pedido) => {
     try {
       const { data, error } = await supabase
@@ -74,7 +74,20 @@ export default function AdminPedidos() {
 
   const cerrarDetalle = () => setDetalle(null);
 
-  // 🧱 Render principal
+  // 🎯 Aplicar filtro
+  const pedidosFiltrados = pedidos.filter((p) => {
+    if (filtro === "entregados") return p.estado === "entregado";
+    if (filtro === "activos") return p.estado !== "entregado";
+    return true;
+  });
+
+  // 🧠 Guardar filtro en localStorage
+  const cambiarFiltro = (nuevo) => {
+    setFiltro(nuevo);
+    localStorage.setItem("filtro_pedidos", nuevo);
+  };
+
+  // 🧱 Render
   if (cargando)
     return <p style={{ textAlign: "center", color: "#ccc" }}>Cargando pedidos...</p>;
   if (error)
@@ -84,13 +97,44 @@ export default function AdminPedidos() {
     <div style={st.container}>
       <h1 style={st.title}>📦 Panel de Pedidos</h1>
 
-      {pedidos.length === 0 ? (
+      {/* 🧭 Filtros */}
+      <div style={st.filters}>
+        <button
+          style={{
+            ...st.filterBtn,
+            backgroundColor: filtro === "todos" ? "#ff8c00" : "#333",
+          }}
+          onClick={() => cambiarFiltro("todos")}
+        >
+          🔄 Todos
+        </button>
+        <button
+          style={{
+            ...st.filterBtn,
+            backgroundColor: filtro === "activos" ? "#17a2b8" : "#333",
+          }}
+          onClick={() => cambiarFiltro("activos")}
+        >
+          🚚 Activos
+        </button>
+        <button
+          style={{
+            ...st.filterBtn,
+            backgroundColor: filtro === "entregados" ? "#28a745" : "#333",
+          }}
+          onClick={() => cambiarFiltro("entregados")}
+        >
+          ✅ Entregados
+        </button>
+      </div>
+
+      {pedidosFiltrados.length === 0 ? (
         <p style={{ color: "#ccc", textAlign: "center" }}>
-          No hay pedidos registrados aún.
+          No hay pedidos que coincidan con este filtro.
         </p>
       ) : (
         <div style={st.grid}>
-          {pedidos.map((p) => (
+          {pedidosFiltrados.map((p) => (
             <div key={p.id} style={st.card}>
               <div style={st.header}>
                 <span style={st.id}>Pedido #{p.id}</span>
@@ -153,10 +197,7 @@ export default function AdminPedidos() {
                 <strong>🧾 Método:</strong> {p.metodo_pago}
               </div>
 
-              <button
-                onClick={() => verDetalle(p)}
-                style={st.detalleBtn}
-              >
+              <button onClick={() => verDetalle(p)} style={st.detalleBtn}>
                 🔍 Ver detalle
               </button>
             </div>
@@ -164,7 +205,7 @@ export default function AdminPedidos() {
         </div>
       )}
 
-      {/* 🪟 Modal de detalle */}
+      {/* 🪟 Modal */}
       {detalle && (
         <div style={st.modalOverlay}>
           <div style={st.modal}>
@@ -208,20 +249,30 @@ export default function AdminPedidos() {
   );
 }
 
-// 🎨 Estilos visuales
+// 🎨 Estilos
 const st = {
-  container: {
-    padding: "30px",
-    color: "#fff",
-    maxWidth: "1100px",
-    margin: "0 auto",
-  },
+  container: { padding: "30px", color: "#fff", maxWidth: "1100px", margin: "0 auto" },
   title: {
     textAlign: "center",
     marginBottom: "25px",
     color: "#ff8c00",
     fontSize: "2rem",
     textShadow: "0 0 8px rgba(255,140,0,0.4)",
+  },
+  filters: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "10px",
+    marginBottom: "20px",
+  },
+  filterBtn: {
+    padding: "8px 16px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "bold",
+    color: "#fff",
+    transition: "0.2s",
   },
   grid: {
     display: "grid",
@@ -245,12 +296,7 @@ const st = {
   id: { fontWeight: "bold", color: "#ffb347" },
   fecha: { color: "#999", fontSize: "0.9rem" },
   row: { margin: "6px 0" },
-  badges: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    marginTop: "12px",
-  },
+  badges: { display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" },
   select: {
     marginLeft: "10px",
     padding: "6px 10px",
@@ -259,7 +305,6 @@ const st = {
     color: "#fff",
     border: "none",
     cursor: "pointer",
-    transition: "0.3s",
   },
   estadoBox: {
     backgroundColor: "#2c2c2c",
