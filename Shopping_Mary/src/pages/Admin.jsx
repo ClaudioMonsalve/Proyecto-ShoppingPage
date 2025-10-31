@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
+import { useNavigate } from "react-router-dom"; // 👈 necesario para redirigir
 
 export default function Admin() {
   const [productos, setProductos] = useState([]);
@@ -13,6 +14,8 @@ export default function Admin() {
   const [busqueda, setBusqueda] = useState("");
   const [modoEditar, setModoEditar] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
+
+  const navigate = useNavigate(); // 👈 hook para redirección
 
   // Cargar productos
   const fetchProductos = async () => {
@@ -116,37 +119,27 @@ export default function Admin() {
     setCargando(true);
 
     try {
-      let imagenBytea = productoEditando.imagen; // mantener la anterior por defecto
-
-      // ✅ Si el usuario sube una nueva imagen, convertirla a bytea
-      if (imagenFile) {
-        imagenBytea = await fileToBytea(imagenFile);
-      }
-
-      // ✅ Asegurar que siempre tenga el formato \xHEX...
+      let imagenBytea = productoEditando.imagen;
+      if (imagenFile) imagenBytea = await fileToBytea(imagenFile);
       if (imagenBytea && !imagenBytea.startsWith("\\x")) {
         imagenBytea = "\\x" + imagenBytea.replace(/^0x/, "");
       }
 
-      // ✅ Ejecutar UPDATE con todos los campos, incluida imagen
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("productos")
         .update({
           nombre: nombre.trim(),
           precio: parseFloat(precio),
           stock: parseInt(stock),
           descripcion: descripcion.trim(),
-          imagen: imagenBytea, // ← clave: pasar el bytea bien formateado
+          imagen: imagenBytea,
         })
-        .eq("id", productoEditando.id)
-        .select("*");
+        .eq("id", productoEditando.id);
 
-      if (error) {
-        console.error("❌ Error Supabase:", error);
-        alert("❌ No se pudo actualizar la imagen: " + error.message);
-      } else {
-        alert("✅ Producto actualizado correctamente (incluida imagen)");
-        await fetchProductos(); // recarga los productos desde la BD
+      if (error) alert("❌ No se pudo actualizar: " + error.message);
+      else {
+        alert("✅ Producto actualizado correctamente");
+        await fetchProductos();
         limpiarFormulario();
       }
     } catch (err) {
@@ -156,8 +149,6 @@ export default function Admin() {
 
     setCargando(false);
   };
-
-
 
   const limpiarFormulario = () => {
     setNombre("");
@@ -170,16 +161,39 @@ export default function Admin() {
     setProductoEditando(null);
   };
 
-  // Filtrar productos
   const productosFiltrados = productos.filter((p) =>
     p.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
     <div style={{ padding: 20, maxWidth: 1000, margin: "0 auto", color: "#fff" }}>
-      <h1 style={{ textAlign: "center", marginBottom: 30 }}>🛠️ Panel de Administración</h1>
+      <h1 style={{ textAlign: "center", marginBottom: 10 }}>🛠️ Panel de Administración</h1>
 
-      {/* Formulario agregar/editar producto */}
+      {/* 🔗 Botón para ir a Admin-Pedidos */}
+      <div style={{ textAlign: "center", marginBottom: 25 }}>
+        <button
+          onClick={() => navigate("/admin-pedidos")}
+          style={{
+            background: "linear-gradient(90deg, #ff5c8d, #ffb347)",
+            border: "none",
+            color: "#fff",
+            padding: "12px 25px",
+            borderRadius: "10px",
+            fontSize: "1rem",
+            fontWeight: "bold",
+            cursor: "pointer",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+            transition: "transform 0.2s",
+          }}
+          onMouseEnter={(e) => (e.target.style.transform = "scale(1.05)")}
+          onMouseLeave={(e) => (e.target.style.transform = "scale(1.0)")}
+        >
+          📦 Ver Pedidos
+        </button>
+      </div>
+
+      {/* --- resto del panel de productos (igual que antes) --- */}
+
       <div style={{ marginBottom: 20, padding: 20, backgroundColor: "#2c2c2c", borderRadius: 10 }}>
         <h2>{modoEditar ? "✏️ Editar Producto" : "Agregar Producto"}</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
@@ -255,18 +269,10 @@ export default function Admin() {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => editarProducto(p)}
-                  disabled={cargando}
-                  style={editButtonStyle}
-                >
+                <button onClick={() => editarProducto(p)} disabled={cargando} style={editButtonStyle}>
                   Modificar
                 </button>
-                <button
-                  onClick={() => eliminarProducto(p.id)}
-                  disabled={cargando}
-                  style={deleteButtonStyle}
-                >
+                <button onClick={() => eliminarProducto(p.id)} disabled={cargando} style={deleteButtonStyle}>
                   Eliminar
                 </button>
               </div>
