@@ -86,13 +86,12 @@ export default function Admin() {
     setCargando(false);
   };
 
-  // 🗑️ Eliminar producto (solo si no tiene pedidos)
   const eliminarProducto = async (id) => {
-    if (!window.confirm("¿Seguro quieres eliminar este producto?")) return;
+    if (!window.confirm("¿Seguro que quieres eliminar este producto?")) return;
     setCargando(true);
 
     try {
-      // 🧩 1️⃣ Verificar si el producto está en algún pedido
+      // 🔎 Verificar si el producto está en algún pedido
       const { data: detalle, error: detalleError } = await supabase
         .from("detalle_pedidos")
         .select("id")
@@ -100,27 +99,42 @@ export default function Admin() {
 
       if (detalleError) throw detalleError;
 
-      // ⚠️ 2️⃣ Si hay pedidos, no permitir eliminar
       if (detalle && detalle.length > 0) {
-        alert("⚠️ No puedes eliminar este producto porque ya está en pedidos realizados.");
-        setCargando(false);
-        return;
+        // ⚠️ Tiene pedidos → ocultar
+        const ocultos = JSON.parse(localStorage.getItem("productos_ocultos") || "[]");
+        if (!ocultos.includes(id)) ocultos.push(id);
+        localStorage.setItem("productos_ocultos", JSON.stringify(ocultos));
+
+        alert("⚠️ Producto ocultado (ya tiene pedidos, no se puede eliminar).");
+      } else {
+        // ✅ No tiene pedidos → eliminar realmente
+        const { error: deleteError } = await supabase
+          .from("productos")
+          .delete()
+          .eq("id", id);
+
+        if (deleteError) {
+          // 🧠 Si hay restricción en la base, lo mostramos
+          console.error("❌ Error Supabase:", deleteError);
+          alert(
+            "❌ No se pudo eliminar el producto. " +
+              (deleteError.message || "Revisa restricciones en la base de datos.")
+          );
+        } else {
+          alert("✅ Producto eliminado correctamente.");
+        }
       }
 
-      // ✅ 3️⃣ Si no hay pedidos asociados, eliminarlo
-      const { error } = await supabase.from("productos").delete().eq("id", id);
-
-      if (error) throw error;
-
-      alert("✅ Producto eliminado correctamente.");
-      fetchProductos(); // refrescar lista
+      await fetchProductos(); // recargar lista
     } catch (err) {
-      console.error("❌ Error al eliminar producto:", err);
-      alert("❌ Error al eliminar producto: " + err.message);
+      console.error("🔥 Error inesperado al eliminar:", err);
+      alert("🔥 Error inesperado: " + err.message);
     } finally {
       setCargando(false);
     }
   };
+
+
 
 
   // Iniciar edición
