@@ -9,7 +9,7 @@ export default function Carrito({ carrito, setCarrito }) {
 
   // ✨ Estados del modal y verificación
   const [showModal, setShowModal] = useState(false);
-  const [step, setStep] = useState("form"); // form | code
+  const [step, setStep] = useState("form"); // form | code | pago
   const [email, setEmail] = useState(localStorage.getItem("email") || "");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -111,7 +111,7 @@ export default function Carrito({ carrito, setCarrito }) {
       const data = await res.json();
       if (data.success) {
         alert("✅ Verificación exitosa");
-        confirmarPago(); // pasa al pago
+        setStep("pago"); // 👈 ahora pasa a elegir método de pago
       } else {
         alert("❌ Código inválido");
       }
@@ -158,13 +158,31 @@ export default function Carrito({ carrito, setCarrito }) {
         // 🔁 Redirigir a Mercado Pago
         window.location.href = data.init_point;
       }
-
     } catch (err) {
       console.error("❌ Error al procesar el pago:", err);
       alert("❌ Error al procesar el pago");
     } finally {
       setLoading(false);
     }
+  };
+
+  // 💵 Pago en efectivo → redirige a success
+  const pagoEfectivo = async () => {
+    // Guardar carrito y datos cliente
+    localStorage.setItem("carrito_backup", JSON.stringify(carritoLocal));
+    localStorage.removeItem("carrito");
+    setCarritoLocal([]);
+
+    // Redirigir con estado no_pagado
+    const params = new URLSearchParams({
+      status: "no_pagado",
+      email,
+      telefono,
+      direccion,
+      ciudad,
+      region,
+    });
+    window.location.href = `/success?${params.toString()}`;
   };
 
   // ============================
@@ -323,6 +341,33 @@ export default function Carrito({ carrito, setCarrito }) {
                   disabled={loading}
                 >
                   Volver
+                </button>
+              </>
+            )}
+
+            {step === "pago" && (
+              <>
+                <h3>Selecciona tu método de pago 💰</h3>
+                <button
+                  style={styles.confirmBtn}
+                  onClick={pagoEfectivo}
+                  disabled={loading}
+                >
+                  Pagar en efectivo
+                </button>
+                <button
+                  style={styles.confirmBtn}
+                  onClick={confirmarPago}
+                  disabled={loading}
+                >
+                  Pagar con débito (Mercado Pago)
+                </button>
+                <button
+                  style={styles.cancelBtn}
+                  onClick={() => setShowModal(false)}
+                  disabled={loading}
+                >
+                  Cancelar
                 </button>
               </>
             )}
