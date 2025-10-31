@@ -19,17 +19,27 @@ export default async function handler(req, res) {
     const body = req.body;
     console.log("📦 Body recibido:", body);
 
-    const { email, telefono, direccion, ciudad, region, total, carrito } = body || {};
+    const {
+      email,
+      telefono,
+      direccion,
+      ciudad,
+      region,
+      total,
+      carrito,
+      estado_pago = "pagado", // 👈 nuevo campo (pago)
+      metodo_pago = "debito", // 👈 nuevo campo (tipo)
+    } = body || {};
 
     if (!email || !carrito?.length) {
       console.log("⚠️ Faltan datos:", { email, carrito });
       return res.status(400).json({ error: "Faltan datos para guardar el pedido" });
     }
 
-    // Generar token de seguimiento
+    // Token de seguimiento
     const tracking_token = crypto.randomBytes(16).toString("hex");
 
-    // 🧾 Guardar pedido principal
+    // 🧾 Insertar pedido principal
     console.log("🟢 Insertando pedido...");
     const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
@@ -41,7 +51,9 @@ export default async function handler(req, res) {
           ciudad,
           region,
           total,
-          estado: "pagado",
+          estado: "pendiente",  // 👈 estado del pedido (ej: pendiente, enviado, entregado)
+          estado_pago,          // 👈 estado del pago (pagado o pendiente)
+          metodo_pago,          // 👈 método de pago
           tracking_token,
         },
       ])
@@ -53,7 +65,7 @@ export default async function handler(req, res) {
       throw pedidoError;
     }
 
-    // 🧺 Guardar detalle
+    // 🧺 Insertar detalle
     console.log("🟢 Insertando detalle...");
     const detalle = carrito.map((p) => ({
       pedido_id: pedido.id,
@@ -72,8 +84,6 @@ export default async function handler(req, res) {
     }
 
     console.log("✅ Pedido guardado correctamente:", pedido.id);
-
-    // Respuesta exitosa
     return res.status(200).json({ success: true, pedido });
   } catch (err) {
     console.error("🔥 Error en save_order:", err);

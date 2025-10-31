@@ -6,6 +6,7 @@ export default function Success({ setCarrito }) {
   const [estado, setEstado] = useState("procesando"); // procesando | exito | error
   const [pedido, setPedido] = useState(null);
   const [mensajeError, setMensajeError] = useState("");
+  const [metodoPago, setMetodoPago] = useState("");
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -16,14 +17,6 @@ export default function Success({ setCarrito }) {
     const ciudad = query.get("ciudad");
     const region = query.get("region");
 
-    // ⚠️ Validar pago
-    if (status !== "approved") {
-      setEstado("error");
-      setMensajeError("El pago no fue aprobado.");
-      return;
-    }
-
-    // ⚙️ Recuperar carrito del almacenamiento local
     const carrito = JSON.parse(localStorage.getItem("carrito_backup") || "[]");
     if (!carrito.length) {
       setEstado("error");
@@ -31,8 +24,18 @@ export default function Success({ setCarrito }) {
       return;
     }
 
-    // 🧮 Calcular total
     const total = carrito.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
+
+    // 🔍 Detectar método de pago
+    if (status === "approved") {
+      setMetodoPago("debito");
+    } else if (status === "no_pagado") {
+      setMetodoPago("efectivo");
+    } else {
+      setEstado("error");
+      setMensajeError("El pago no fue aprobado.");
+      return;
+    }
 
     async function guardarPedido() {
       try {
@@ -47,6 +50,8 @@ export default function Success({ setCarrito }) {
             region,
             total,
             carrito,
+            estado_pago: status === "no_pagado" ? "pendiente" : "pagado", // 👈 estado del pago
+            metodo_pago: status === "no_pagado" ? "efectivo" : "debito", // 👈 método del pago
           }),
         });
 
@@ -57,30 +62,31 @@ export default function Success({ setCarrito }) {
 
         const pedido = data.pedido;
 
-        // ✉️ Enviar correo con link de seguimiento
-        try {
-          await fetch("/api/send_confirmacion", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email,
-              pedido_id: pedido.id,
-              total: pedido.total,
-              direccion: pedido.direccion,
-              ciudad: pedido.ciudad,
-              region: pedido.region,
-              tracking_token: pedido.tracking_token, // 👈 necesario para el link
-            }),
-          });
-        } catch (mailErr) {
-          console.warn("⚠️ Falló el envío del correo:", mailErr);
+        // ✉️ Enviar correo solo si el pago fue aprobado
+        if (status === "approved") {
+          try {
+            await fetch("/api/send_confirmacion", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email,
+                pedido_id: pedido.id,
+                total: pedido.total,
+                direccion: pedido.direccion,
+                ciudad: pedido.ciudad,
+                region: pedido.region,
+                tracking_token: pedido.tracking_token,
+              }),
+            });
+          } catch (mailErr) {
+            console.warn("⚠️ Falló el envío del correo:", mailErr);
+          }
         }
 
-        // 🧹 Vaciar carrito local
+        // 🧹 Limpiar carrito
         setCarrito([]);
         localStorage.removeItem("carrito_backup");
 
-        // ✅ Guardar información para mostrar
         setPedido(pedido);
         setEstado("exito");
       } catch (err) {
@@ -99,7 +105,7 @@ export default function Success({ setCarrito }) {
   if (estado === "procesando") {
     return (
       <div style={st.wrap}>
-        <h1 style={st.title}>Procesando pago...</h1>
+        <h1 style={st.title}>Procesando pedido...</h1>
         <p>Por favor espera unos segundos.</p>
       </div>
     );
@@ -120,14 +126,28 @@ export default function Success({ setCarrito }) {
     return (
       <div style={st.wrap}>
         <div style={st.card}>
-          <h1 style={st.title}>✅ ¡Pago confirmado!</h1>
-          <p><strong>Pedido #{pedido.id}</strong></p>
-          <p>Total: ${pedido.total}</p>
-          <p>Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}</p>
-
-          <a href={trackUrl} target="_blank" rel="noreferrer" style={st.btn}>
-            Ver seguimiento del pedido
-          </a>
+          {metodoPago === "debito" ? (
+            <>
+              <h1 style={st.title}>✅ ¡Pago confirmado!</h1>
+              <p><strong>Pedido #{pedido.id}</strong></p>
+              <p>Total: ${pedido.total}</p>
+              <p>Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}</p>
+              <a href={trackUrl} target="_blank" rel="noreferrer" style={st.btn}>
+                Ver seguimiento del pedido
+              </a>
+            </>
+          ) : (
+            <>
+              <h1 style={{ ...st.title, color: "#ffb347" }}>🕓 Pedido pendiente de pago</h1>
+              <p><strong>Pedido #{pedido.id}</strong></p>
+              <p>Total: ${pedido.total}</p>
+              <p>Por favor paga en efectivo al momento de la entrega.</p>
+              <p>Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}</p>
+              <a href={trackUrl} target="_blank" rel="noreferrer" style={st.btn}>
+                Ver seguimiento del pedido
+              </a>
+            </>
+          )}
 
           <div style={{ marginTop: 10 }}>
             <Link to="/" style={st.link}>Volver al inicio</Link>
