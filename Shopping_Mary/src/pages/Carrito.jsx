@@ -17,12 +17,13 @@ export default function Carrito({ carrito, setCarrito }) {
   const [region, setRegion] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
 
-  // sincronizar carrito
+  // sincronizar carrito con padre + localStorage
   useEffect(() => {
     setCarrito(carritoLocal);
     localStorage.setItem("carrito", JSON.stringify(carritoLocal));
   }, [carritoLocal, setCarrito]);
 
+  // guardar email solo
   useEffect(() => {
     if (email) localStorage.setItem("email", email);
   }, [email]);
@@ -138,6 +139,9 @@ export default function Carrito({ carrito, setCarrito }) {
     }));
 
     try {
+      // 💾 Guardar datos del cliente antes de ir a MP
+      localStorage.setItem("datos_cliente", JSON.stringify(datosCliente));
+
       const res = await fetch("/api/create_preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -170,6 +174,12 @@ export default function Carrito({ carrito, setCarrito }) {
   const pagoEfectivo = async () => {
     // Guardar carrito y datos cliente
     localStorage.setItem("carrito_backup", JSON.stringify(carritoLocal));
+    localStorage.setItem(
+      "datos_cliente",
+      JSON.stringify({ email, telefono, direccion, ciudad, region })
+    );
+
+    // Limpiar carrito visible
     localStorage.removeItem("carrito");
     setCarritoLocal([]);
 

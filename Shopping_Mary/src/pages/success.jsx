@@ -10,13 +10,18 @@ export default function Success({ setCarrito }) {
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
-    const status = query.get("status");
-    const email = query.get("email");
-    const telefono = query.get("telefono");
-    const direccion = query.get("direccion");
-    const ciudad = query.get("ciudad");
-    const region = query.get("region");
+    const status = query.get("status"); // approved | no_pagado
 
+    // 🔁 Intentar leer los datos del cliente desde localStorage
+    const datosCliente = JSON.parse(localStorage.getItem("datos_cliente") || "{}");
+
+    const email = query.get("email") || datosCliente.email;
+    const telefono = query.get("telefono") || datosCliente.telefono;
+    const direccion = query.get("direccion") || datosCliente.direccion;
+    const ciudad = query.get("ciudad") || datosCliente.ciudad;
+    const region = query.get("region") || datosCliente.region;
+
+    // 🧠 Recuperar carrito que guardamos ANTES de ir a MP / elegir efectivo
     const carrito = JSON.parse(localStorage.getItem("carrito_backup") || "[]");
     if (!carrito.length) {
       setEstado("error");
@@ -24,6 +29,7 @@ export default function Success({ setCarrito }) {
       return;
     }
 
+    // 🧮 Calcular total
     const total = carrito.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
 
     // 🔍 Detectar método de pago
@@ -50,8 +56,8 @@ export default function Success({ setCarrito }) {
             region,
             total,
             carrito,
-            estado_pago: status === "no_pagado" ? "pendiente" : "pagado", // 👈 estado del pago
-            metodo_pago: status === "no_pagado" ? "efectivo" : "debito", // 👈 método del pago
+            estado_pago: status === "no_pagado" ? "pendiente" : "pagado",
+            metodo_pago: status === "no_pagado" ? "efectivo" : "debito",
           }),
         });
 
@@ -61,7 +67,6 @@ export default function Success({ setCarrito }) {
         }
 
         const pedido = data.pedido;
-
 
         // ✉️ Enviar correo en ambos casos (pago aprobado o efectivo)
         try {
@@ -84,10 +89,11 @@ export default function Success({ setCarrito }) {
           console.warn("⚠️ Falló el envío del correo:", mailErr);
         }
 
-
         // 🧹 Limpiar carrito
         setCarrito([]);
         localStorage.removeItem("carrito_backup");
+        // opcional: también podrías limpiar datos_cliente
+        // localStorage.removeItem("datos_cliente");
 
         setPedido(pedido);
         setEstado("exito");
@@ -118,7 +124,9 @@ export default function Success({ setCarrito }) {
       <div style={st.wrap}>
         <h1 style={{ ...st.title, color: "#ff4d4f" }}>❌ Algo salió mal</h1>
         <p>{mensajeError}</p>
-        <Link to="/" style={st.btn}>Volver al inicio</Link>
+        <Link to="/" style={st.btn}>
+          Volver al inicio
+        </Link>
       </div>
     );
   }
@@ -131,20 +139,32 @@ export default function Success({ setCarrito }) {
           {metodoPago === "debito" ? (
             <>
               <h1 style={st.title}>✅ ¡Pago confirmado!</h1>
-              <p><strong>Pedido #{pedido.id}</strong></p>
+              <p>
+                <strong>Pedido #{pedido.id}</strong>
+              </p>
               <p>Total: ${pedido.total}</p>
-              <p>Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}</p>
+              <p>
+                Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}
+              </p>
+
               <a href={trackUrl} target="_blank" rel="noreferrer" style={st.btn}>
                 Ver seguimiento del pedido
               </a>
             </>
           ) : (
             <>
-              <h1 style={{ ...st.title, color: "#ffb347" }}>🕓 Pedido pendiente de pago</h1>
-              <p><strong>Pedido #{pedido.id}</strong></p>
+              <h1 style={{ ...st.title, color: "#ffb347" }}>
+                🕓 Pedido pendiente de pago
+              </h1>
+              <p>
+                <strong>Pedido #{pedido.id}</strong>
+              </p>
               <p>Total: ${pedido.total}</p>
               <p>Por favor paga en efectivo al momento de la entrega.</p>
-              <p>Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}</p>
+              <p>
+                Dirección: {pedido.direccion}, {pedido.ciudad}, {pedido.region}
+              </p>
+
               <a href={trackUrl} target="_blank" rel="noreferrer" style={st.btn}>
                 Ver seguimiento del pedido
               </a>
@@ -152,7 +172,9 @@ export default function Success({ setCarrito }) {
           )}
 
           <div style={{ marginTop: 10 }}>
-            <Link to="/" style={st.link}>Volver al inicio</Link>
+            <Link to="/" style={st.link}>
+              Volver al inicio
+            </Link>
           </div>
         </div>
       </div>
