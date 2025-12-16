@@ -21,18 +21,28 @@ export default async function handler(req, res) {
     if (estado) updateData.estado = estado;
     if (estado_pago) updateData.estado_pago = estado_pago;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("pedidos")
       .update(updateData)
-      .eq("id", id);
+      .eq("id", id)
+      .select();
 
     if (error) {
       return res.status(500).json({ error: error.message });
     }
 
-    return res.status(200).json({ success: true });
+    if (!data || data.length === 0) {
+      return res.status(404).json({
+        error: `No existe pedido con id ${id}`,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      updated: data,
+    });
   } catch (err) {
-    console.error("🔥 update_pedido error:", err);
+    console.error("🔥 update_pedidos error:", err);
     return res.status(500).json({ error: "Error interno" });
   }
 }
