@@ -65,64 +65,83 @@ export default function Carrito({ carrito, setCarrito }) {
   };
 
   const enviarCodigo = async () => {
-    if (
-      !email ||
-      !telefono ||
-      !direccion ||
-      !ciudad ||
-      !region ||
-      !/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email)
-    ) {
-      alert("⚠️ Completa todos los campos y usa un Gmail válido.");
-      return;
+  if (
+    !email ||
+    !telefono ||
+    !direccion ||
+    !ciudad ||
+    !region ||
+    !/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email)
+  ) {
+    alert("⚠️ Completa todos los campos y usa un Gmail válido.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const res = await fetch("/api/send_code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    // 🔴 CLAVE: validar status HTTP
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`send_code ${res.status}: ${text}`);
     }
 
-    try {
-      setLoading(true);
-      const res = await fetch("/api/send_code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+    const data = await res.json();
+    console.log("SEND_CODE RESPONSE:", data);
 
-      const data = await res.json();
-      if (data.success) {
-        alert("📩 Código enviado a tu Gmail");
-        setStep("code");
-      } else {
-        alert("❌ Error al enviar el código");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("❌ Error al conectar con el servidor");
-    } finally {
-      setLoading(false);
+    if (data.success === true) {
+      alert("📩 Código enviado a tu Gmail");
+      setStep("code");
+    } else {
+      throw new Error(data.error || "Backend devolvió success=false");
     }
+  } catch (err) {
+    console.error("❌ ERROR REAL SEND_CODE:", err);
+    alert("❌ Error real al enviar código:\n" + err.message);
+  } finally {
+    setLoading(false);
+  }
   };
+
 
   const verificarCodigo = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/verify_code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: verificationCode }),
-      });
+  try {
+    setLoading(true);
 
-      const data = await res.json();
-      if (data.success) {
-        alert("✅ Verificación exitosa");
-        setStep("pago"); // 👈 ahora pasa a elegir método de pago
-      } else {
-        alert("❌ Código inválido");
-      }
-    } catch (err) {
-      console.error("Error al verificar código:", err);
-      alert("❌ Error al verificar el código");
-    } finally {
-      setLoading(false);
+    const res = await fetch("/api/verify_code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code: verificationCode }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`verify_code ${res.status}: ${text}`);
     }
+
+    const data = await res.json();
+    console.log("VERIFY_CODE RESPONSE:", data);
+
+    if (data.success === true) {
+      alert("✅ Verificación exitosa");
+      setStep("pago");
+    } else {
+      throw new Error(data.error || "Código inválido");
+    }
+  } catch (err) {
+    console.error("❌ ERROR REAL VERIFY_CODE:", err);
+    alert("❌ Error real al verificar código:\n" + err.message);
+  } finally {
+    setLoading(false);
+  }
   };
+
 
   // ============================
   //       💳 CREAR PAGO
