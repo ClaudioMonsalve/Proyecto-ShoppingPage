@@ -33,44 +33,36 @@ export default function AdminPedidos() {
   // 🧾 Actualizar estado o pago
   const actualizarPedido = async (id, campo, valor) => {
     try {
-      const { error } = await supabase
-        .from("pedidos")
-        .update({ [campo]: valor })
-        .eq("id", id);
+      const body = { id };
 
-      if (error) throw error;
+      if (campo === "estado") body.estado = valor;
+      if (campo === "estado_pago") body.estado_pago = valor;
+
+      const res = await fetch("/api/update_pedido", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error al actualizar pedido");
+      }
+
+      // actualizar estado en pantalla
       setPedidos((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p))
+        prev.map((p) =>
+          p.id === id ? { ...p, [campo]: valor } : p
+        )
       );
     } catch (err) {
       alert("❌ Error al actualizar: " + err.message);
     }
   };
 
-  // 🔍 Ver detalle del pedido
-  const verDetalle = async (pedido) => {
-    try {
-      const { data, error } = await supabase
-        .from("detalle_pedidos")
-        .select(`id, cantidad, subtotal, producto:productos(nombre, precio)`)
-        .eq("pedido_id", pedido.id);
-
-      if (error) throw error;
-
-      setDetalle({
-        pedido,
-        items: data.map((i) => ({
-          id: i.id,
-          nombre: i.producto?.nombre,
-          precio: i.producto?.precio,
-          cantidad: i.cantidad,
-          subtotal: i.subtotal,
-        })),
-      });
-    } catch (err) {
-      alert("❌ Error al obtener detalle: " + err.message);
-    }
-  };
 
   const cerrarDetalle = () => setDetalle(null);
 
