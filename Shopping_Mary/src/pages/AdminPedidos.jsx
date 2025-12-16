@@ -34,25 +34,24 @@ export default function AdminPedidos() {
   const actualizarPedido = async (id, campo, valor) => {
     try {
       const body = { id };
-
       if (campo === "estado") body.estado = valor;
       if (campo === "estado_pago") body.estado_pago = valor;
 
       const res = await fetch("/api/update_pedido", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {}
 
       if (!res.ok) {
         throw new Error(data.error || "Error al actualizar pedido");
       }
 
-      // actualizar estado en pantalla
       setPedidos((prev) =>
         prev.map((p) =>
           p.id === id ? { ...p, [campo]: valor } : p
@@ -62,6 +61,7 @@ export default function AdminPedidos() {
       alert("❌ Error al actualizar: " + err.message);
     }
   };
+
 
 
   const cerrarDetalle = () => setDetalle(null);
