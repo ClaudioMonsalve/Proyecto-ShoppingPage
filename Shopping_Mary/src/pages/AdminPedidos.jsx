@@ -39,7 +39,7 @@ export default function AdminPedidos() {
       if (campo === "estado_pago") body.estado_pago = valor;
 
       const res = await fetch("/api/update_pedido", {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },

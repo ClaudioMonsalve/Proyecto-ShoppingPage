@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== "PUT")
+  if (req.method !== "POST")
     return res.status(405).json({ error: "Método no permitido" });
 
   try {
