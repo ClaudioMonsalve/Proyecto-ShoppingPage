@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     });
 
     const { error } = await supabase
-      .from("codigos_verificacion")
+      .from("verification_codes")
       .insert([{ email, codigo: code }]);
 
     if (error) {
